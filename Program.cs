@@ -1,2 +1,6 @@
-﻿// See https://aka.ms/new-console-template for more information
-Console.WriteLine("Hello, World!");
+﻿﻿using DOOM;
+using DOOM.WAD;
+
+var wadloader = WADLoader.Open("DOOM1.WAD", buffered: false);
+
+wadloader.TEST();

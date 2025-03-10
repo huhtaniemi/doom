@@ -109,6 +109,28 @@ namespace DOOM.WAD
 
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct Thing
+        {
+            [Flags]
+            public enum FLAGS
+            {
+                skill_level_1_2 = 0x0001,	// Thing is on skill levels 1 & 2
+                skill_level_3   = 0x0002,	// Thing is on skill level 3
+                skill_level_4_5 = 0x0004,	// Thing is on skill levels 4 & 5
+                ambush          = 0x0008,	// Thing is waiting in ambush. Commonly known as "deaf" flag.
+                //In fact, it does not render monsters deaf per se.
+                not_in_single_player = 0x0010// Thing is not in single player
+            }
+            public short pos_x;
+            public short pos_y;
+            public ushort angle_facing;
+            public ushort type;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+            //public FLAGS flags;
+            public ushort flags;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct linedef
         {
             [Flags]
@@ -136,10 +158,70 @@ namespace DOOM.WAD
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct sidedef
+        {
+            public short offset_x;
+            public short offset_y;
+            public long tex_upper; // helper.Sfn<helper.Sfnbyte8>
+            public long tex_lower;
+            public long tex_middle;
+            public ushort sector_id;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct vertex
         {
             public short pos_x;
             public short pos_y;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct seg
+        {
+            public ushort vertex_id_start;
+            public ushort vertex_id_end;
+            public ushort slope_angle;
+            public ushort linedef_id;
+            public ushort direction;
+            public ushort offset;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct subsector
+        {
+            public ushort seg_count;
+            public ushort first_seg_id;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct node
+        {
+            public struct bounding_box
+            {
+                public short top, bottom, left, right;
+            }
+            // coordinate of partition line start
+            public short partition_x;
+            public short partition_y;
+            // change in n from start to end of partition line
+            public short partition_x_change;
+            public short partition_y_change;
+            public bounding_box right;
+            public bounding_box left;
+            public ushort child_id_right;
+            public ushort child_id_left;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct sector
+        {
+            public short height_floor;
+            public short height_ceiling;
+            public long tex_floor; // helper.Sfn<helper.Sfnbyte8>
+            public long tex_ceiling;
+            public ushort light_level;
+            public ushort sector_type;
+            public ushort tag;
         }
 
     }

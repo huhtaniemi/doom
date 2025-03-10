@@ -109,7 +109,7 @@ namespace DOOM.WAD
 
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        public struct Thing
+        public struct thing
         {
             [Flags]
             public enum FLAGS
@@ -125,7 +125,7 @@ namespace DOOM.WAD
             public short pos_y;
             public ushort angle_facing;
             public ushort type;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+            //[MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
             //public FLAGS flags;
             public ushort flags;
         }

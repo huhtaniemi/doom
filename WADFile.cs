@@ -2,6 +2,7 @@
 using System.Text;
 using System.Runtime.InteropServices;
 using static DOOM.WAD.WADFileTypes;
+using System.Numerics;
 
 #pragma warning disable CS8981
 
@@ -108,6 +109,33 @@ namespace DOOM.WAD
 
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct linedef
+        {
+            [Flags]
+            public enum FLAGS
+            {
+                ML_BLOCKING         = 0x0001, // blocks players and monsters
+                ML_BLOCKMONSTERS    = 0x0002, // blocks monsters
+                ML_TWOSIDED         = 0x0004, // two sided
+                ML_DONTPEGTOP       = 0x0008, // upper texture is unpegged
+                ML_DONTPEGBOTTOM    = 0x0010, // 	lower texture is unpegged
+                ML_SECRET           = 0x0020, // secret (shows as one-sided on automap), and monsters cannot open if it is a door (type 1)
+                ML_SOUNDBLOCK       = 0x0040, // blocks sound
+                ML_DONTDRAW         = 0x0050, // never shows on automap
+                ML_MAPPED           = 0x0100  // always shows on automap
+            }
+            public ushort vertex_id_start;
+            public ushort vertex_id_end;
+            //[MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+            //public FLAGS flags;
+            public ushort flags;
+            public ushort line_type;
+            public ushort sector_tag;
+            public ushort sidedef_id_front;
+            public ushort sidedef_id_back;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct vertex
         {
             public short pos_x;
@@ -158,13 +186,35 @@ namespace DOOM.WAD
 
 
             {
-                var lump_info = filelumps[lump_index + (int)EMAPLUMPSINDEX.eVERTEXES];
-                var vertexes = new helper.refData<vertex>(r, lump_info.filepos, lump_info.size);
-                foreach (ref readonly var vex in vertexes)
+                var lump_info = filelumps[lump_index + (int)EMAPLUMPSINDEX.eLINEDEFS];
+                var linedefs = new helper.refData<linedef>(r, lump_info.filepos, lump_info.size/14);
+                foreach (ref readonly var line in linedefs)
                 {
-                    Console.WriteLine($"vertexe: {vex}");
+                    LINEDEFS.Add(line);
                 }
             }
+
+            {
+                var lump_info = filelumps[lump_index + (int)EMAPLUMPSINDEX.eVERTEXES];
+                var vertexes = new helper.refData<vertex>(r, lump_info.filepos, lump_info.size/4);
+                foreach (ref readonly var vex in vertexes)
+                {
+                    VERTEXES.Add(new(vex.pos_x, vex.pos_y));
+                }
+            }
+
+        }
+
+        List<linedef> LINEDEFS = [];
+        public List<linedef> GetLINEDEFS()
+        {
+            return LINEDEFS;
+        }
+
+        List<Vector2> VERTEXES = [];
+        public List<Vector2> GetVERTEXES()
+        {
+            return VERTEXES;
         }
 
     }

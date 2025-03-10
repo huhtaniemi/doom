@@ -61,10 +61,30 @@ namespace DOOM.WAD
                     this.typespan = MemoryMarshal.Cast<byte, T>(bytespan);
                 }
 
+                public ref readonly T this[int index] => ref typespan[index];
+
                 public readonly ReadOnlySpan<T>.Enumerator GetEnumerator() => typespan.GetEnumerator();
             }
 
         }
+
+
+        public enum EMAPLUMPSINDEX
+        {
+            eName,
+            eTHINGS,
+            eLINEDEFS,
+            eSIDEDDEFS,
+            eVERTEXES,
+            eSEAGS,
+            eSSECTORS,
+            eNODES,
+            eSECTORS,
+            eREJECT,
+            eBLOCKMAP,
+            eCOUNT
+        }
+
 
         // types
 
@@ -85,6 +105,14 @@ namespace DOOM.WAD
             private helper.Sfn<helper.Sfnbyte8> _name;
             public readonly string name => _name;
         };
+
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct vertex
+        {
+            public short pos_x;
+            public short pos_y;
+        }
 
     }
 
@@ -128,6 +156,14 @@ namespace DOOM.WAD
                 lump_index++;
             }
 
+
+            {
+                var lump_info = filelumps[lump_index + (int)EMAPLUMPSINDEX.eVERTEXES];
+                var vertexes = new helper.refData<vertex>(r, lump_info.filepos, lump_info.size);
+                foreach (ref readonly var vex in vertexes)
+                {
+                    Console.WriteLine($"vertexe: {vex}");
+                }
             }
         }
 

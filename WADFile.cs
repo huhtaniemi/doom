@@ -116,9 +116,18 @@ namespace DOOM.WAD
 
         public void TEST()
         {
+            var map_name = "E1M1";
+            var lump_index = 0;
             foreach (ref readonly var filelump in filelumps)
             {
-                Console.WriteLine(filelump.name);
+                if (filelump.name == map_name)
+                {
+                    Console.WriteLine($"Index: {lump_index}, Name: {filelump.name}");
+                    break;
+                }
+                lump_index++;
+            }
+
             }
         }
 

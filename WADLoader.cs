@@ -13,7 +13,7 @@ namespace DOOM.WAD
 
         // common abstraction
 
-        public abstract Span<byte> GetBytes(uint offset, uint count);
+        public abstract ReadOnlySpan<byte> GetBytes(uint offset, uint count);
 
         public abstract ref WADFileTypes.wadinfo ReadHeaderData(uint offset = 0);
 
@@ -35,7 +35,7 @@ namespace DOOM.WAD
                 reader?.Dispose();
             }
 
-            public override Span<byte> GetBytes(uint offset, uint count)
+            public override ReadOnlySpan<byte> GetBytes(uint offset, uint count)
             {
                 reader.BaseStream.Position = offset;
                 return reader.ReadBytes((int)count);
@@ -82,7 +82,7 @@ namespace DOOM.WAD
                 //buffer = [];
             }
 
-            public override Span<byte> GetBytes(uint offset, uint count)
+            public override ReadOnlySpan<byte> GetBytes(uint offset, uint count)
             {
                 return buffer.AsSpan((int)offset, (int)count);
             }

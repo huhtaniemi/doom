@@ -246,8 +246,48 @@ namespace DOOM.WAD
             => new(r, header.infotableofs, header.numlumps);
 
 
+        private int GetIndexByName(helper.refData<filelump> filelumps, string name )
+        {
+            var lump_index = 0;
+            foreach (ref readonly var filelump in filelumps)
+            {
+                if (filelump.name == name)
+                    return lump_index;
+                lump_index++;
+            }
+            return -1;
+        }
+
+        private helper.refData<T> GetLumpData<T>(filelump lump_info) where T : struct
+        {
+            return new helper.refData<T>(r, lump_info.filepos, lump_info.size / (uint)Marshal.SizeOf<T>());
+        }
+
+
         // properties
 
+        public ref struct MapData
+        {
+            public helper.refData<linedef> linedefs;
+            public helper.refData<vertex> vertexes;
+
+            public MapData(helper.refData<linedef> linedefs, helper.refData<vertex> vertexes)
+            {
+                this.linedefs = linedefs;
+                this.vertexes = vertexes;
+            }
+        }
+
+        public MapData GetMapData(string map_name = "E1M1")
+        {
+            var filelumps = new helper.refData<filelump>(r, header.infotableofs, header.numlumps);
+            var lump_idx = GetIndexByName(filelumps, map_name);
+
+            var linedefs = GetLumpData<linedef>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eLINEDEFS]);
+            var vertexes = GetLumpData<vertex>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eVERTEXES]);
+
+            return new(linedefs, vertexes);
+        }
 
 
         // DEBUG

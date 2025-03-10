@@ -68,19 +68,31 @@ namespace DOOM
             var wadloader = WADLoader.Open("DOOM1.WAD", buffered: true);
             wadloader.TEST();
 
-            LINEDEFS = wadloader.GetLINEDEFS();
-            VERTEXES = wadloader.GetVERTEXES();
+            //LINEDEFS = wadloader.GetLINEDEFS();
+            //VERTEXES = wadloader.GetVERTEXES();
+
+            var map = wadloader.GetMapData("E1M2");
 
             short minX = short.MaxValue,
                 maxX = short.MinValue;
             short minY = short.MaxValue,
                 maxY = short.MinValue;
+            /*
             VERTEXES.ForEach(v => {
                 minX = short.Min(minX, (short)v.X);
                 maxX = short.Max(maxX, (short)v.X);
                 minY = short.Min(minY, (short)v.Y);
                 maxY = short.Max(maxY, (short)v.Y);
             });
+            */
+
+            foreach (var v in map.vertexes)
+            {
+                minX = short.Min(minX, (short)v.pos_x);
+                maxX = short.Max(maxX, (short)v.pos_x);
+                minY = short.Min(minY, (short)v.pos_y);
+                maxY = short.Max(maxY, (short)v.pos_y);
+            }
 
             int WIDTH = Width, HEIGHT = Height;
 
@@ -97,9 +109,17 @@ namespace DOOM
                 return HEIGHT - (Math.Max(minY, Math.Min(n, maxY)) - minY) * (out_max - out_min) / (maxY - minY) - out_min;
             };
 
+            /*
             VERTEXES = [.. VERTEXES.Select(v => {
                 return new Vector2(RemapX(v.X), RemapY(v.Y));
             })];
+            */
+
+            foreach (var line in map.linedefs)
+                LINEDEFS.Add(line);
+
+            foreach (var v in map.vertexes)
+                VERTEXES.Add(new Vector2(RemapX(v.pos_x), RemapY(v.pos_y)));
 
             renderTimer.Start();
         }

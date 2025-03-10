@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 using System.Runtime.InteropServices;
+using static DOOM.WAD.WADFileTypes;
 
 #pragma warning disable CS8981
 
@@ -68,7 +69,7 @@ namespace DOOM.WAD
         // types
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        public struct info()
+        public struct wadinfo()
         {
             private helper.Sfn<helper.Sfnbyte4> _id;
             public readonly string identification => _id;
@@ -90,6 +91,7 @@ namespace DOOM.WAD
     public class WADFile : IDisposable
     {
         private readonly BaseReader r;
+        private readonly wadinfo header;
 
         internal WADFile(BaseReader reader)
         {
@@ -101,11 +103,12 @@ namespace DOOM.WAD
             => r?.Dispose();
 
 
+        protected helper.refData<filelump> filelumps
+            => new(r, header.infotableofs, header.numlumps);
+
+
         // properties
 
-        private readonly WADFileTypes.info header;
-        protected WADFileTypes.helper.refData<WADFileTypes.filelump> filelumps
-            => new(r, header.infotableofs, header.numlumps);
 
 
         // DEBUG

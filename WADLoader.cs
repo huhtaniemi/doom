@@ -18,21 +18,21 @@ namespace DOOM.WAD
     {
         private class StreamReader : BaseReader
         {
-            protected BinaryReader reader;
+            protected BinaryReader stream;
 
             public StreamReader(string filepath) : base(filepath)
             {
-                reader = new(File.Open(this.filepath, FileMode.Open));
+                stream = new(File.Open(this.filepath, FileMode.Open));
             }
             public override void Dispose()
             {
-                reader?.Dispose();
+                stream?.Dispose();
             }
 
             public override ReadOnlySpan<byte> GetBytes(uint offset, uint count)
             {
-                reader.BaseStream.Position = offset;
-                return reader.ReadBytes((int)count);
+                stream.BaseStream.Position = offset;
+                return stream.ReadBytes((int)count);
             }
         }
 

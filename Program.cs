@@ -1,6 +1,18 @@
 ﻿﻿using DOOM;
 using DOOM.WAD;
+using System.Drawing;
+using System.Windows.Forms;
 
-var wadloader = WADLoader.Open("DOOM1.WAD", buffered: false);
 
-wadloader.TEST();
+public static class Program
+{
+    [STAThread]
+    public static void Main()
+    {
+        Application.EnableVisualStyles();
+        Application.SetCompatibleTextRenderingDefault(false);
+
+        Application.Run(new Renderer());
+    }
+
+}

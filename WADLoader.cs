@@ -11,13 +11,7 @@ namespace DOOM.WAD
 
         public virtual void Dispose() { }
 
-        // common abstraction
-
         public abstract ReadOnlySpan<byte> GetBytes(uint offset, uint count);
-
-        public abstract ref WADFileTypes.wadinfo ReadHeaderData(uint offset = 0);
-
-        public abstract ref WADFileTypes.filelump ReadDirectoryData(uint offset, uint count = 1);
     }
 
     public static class WADLoader
@@ -40,30 +34,6 @@ namespace DOOM.WAD
                 reader.BaseStream.Position = offset;
                 return reader.ReadBytes((int)count);
             }
-
-            public override ref WADFileTypes.wadinfo ReadHeaderData(uint offset = 0)
-            {
-                reader.BaseStream.Position = offset;
-                return ref MemoryMarshal.Cast<byte, WADFileTypes.wadinfo>(
-                    reader.ReadBytes(Marshal.SizeOf<WADFileTypes.wadinfo>()))[0];
-                //return new(
-                //    idname: reader.ReadBytes(4),// offset + 0
-                //    count: reader.ReadUInt32(), // offset + 4
-                //    offset: reader.ReadUInt32() // offset + 8
-                //);
-            }
-
-            public override ref WADFileTypes.filelump ReadDirectoryData(uint offset, uint count = 1)
-            {
-                reader.BaseStream.Position = offset;
-                return ref MemoryMarshal.Cast<byte, WADFileTypes.filelump>(
-                    reader.ReadBytes(Marshal.SizeOf<WADFileTypes.filelump>() * (int)count))[0];
-                //return new(
-                //    offset: reader.ReadUInt32(),// offset + 0
-                //    size: reader.ReadUInt32(),  // offset + 4
-                //    name: reader.ReadBytes(8)   // offset + 8
-                //);
-            }
         }
 
         private class BufferReader : BaseReader
@@ -85,18 +55,6 @@ namespace DOOM.WAD
             public override ReadOnlySpan<byte> GetBytes(uint offset, uint count)
             {
                 return buffer.AsSpan((int)offset, (int)count);
-            }
-
-            public override ref WADFileTypes.wadinfo ReadHeaderData(uint offset = 0)
-            {
-                return ref MemoryMarshal.Cast<byte, WADFileTypes.wadinfo>(
-                    buffer.AsSpan((int)offset, Marshal.SizeOf<WADFileTypes.wadinfo>()))[0];
-            }
-
-            public override ref WADFileTypes.filelump ReadDirectoryData(uint offset, uint count = 1)
-            {
-                return ref MemoryMarshal.Cast<byte, WADFileTypes.filelump>(
-                    buffer.AsSpan((int)offset, (int)count * Marshal.SizeOf<WADFileTypes.filelump>()))[0];
             }
         }
 

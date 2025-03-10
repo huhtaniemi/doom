@@ -95,8 +95,9 @@ namespace DOOM.WAD
 
         internal WADFile(BaseReader reader)
         {
-            r = reader;
-            header = r.ReadHeaderData();
+            this.r = reader;
+            this.header = MemoryMarshal.Cast<byte, wadinfo>(
+                r.GetBytes(0, (uint)Marshal.SizeOf<wadinfo>()))[0];
         }
 
         public void Dispose()

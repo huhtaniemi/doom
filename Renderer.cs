@@ -34,6 +34,7 @@ namespace DOOM
     {
         private System.Windows.Forms.Timer renderTimer;
         private Stopwatch stopwatch;
+        private Vector2 player_pos;
         private float angleX;
         private float angleY;
         private int fps;
@@ -64,6 +65,7 @@ namespace DOOM
         List<Vector2> VERTEXES = [];
         List<node> NODES = [];
 
+        BSP bsp = new();
         WADFile? wadloader;
         internal MapData map => wadloader.GetMapData("E1M3");
 
@@ -113,6 +115,8 @@ namespace DOOM
 
             THINGS = [.. map.things];
 
+            player_pos = new(THINGS[0].pos_x, THINGS[0].pos_y);
+            angleX = THINGS[0].angle_facing;
 
             //foreach (var line in map.linedefs)
             //    LINEDEFS.Add(line);
@@ -165,9 +169,59 @@ namespace DOOM
                 g.DrawLine(Pens.Orange, RemapX(p1.X), RemapY(p1.Y), RemapX(p2.X), RemapY(p2.Y));
             }
 
+            /*
             foreach (var v in VERTEXES)
                 g.DrawEllipse(Pens.White, RemapX(v.X)-1, RemapY(v.Y)-1, 2, 2);
+            */
+
+            // draw_player_pos
+            DrawPlayerPos(g);
+
+            // draw_node(node_id = self.engine.bsp.root_node_id)
+            var root_node_id = map.nodes.Length - 1;
+            bsp.RenderBspNode(map, root_node_id, player_pos, (seg, subSectorId) => DrawSeg(g, seg, subSectorId));
+            DrawNode(g, root_node_id);
         }
+
+        public void DrawSeg(Graphics g, seg seg, int subSectorId)
+        {
+            var v1 = VERTEXES[seg.vertex_id_start];
+            var v2 = VERTEXES[seg.vertex_id_end];
+            g.DrawLine(Pens.GreenYellow, RemapX(v1.X), RemapY(v1.Y), RemapX(v2.X), RemapY(v2.Y));
+        }
+
+
+        public void DrawBBox(Graphics g, node.bounding_box bbox, Color color)
+        {
+            float x = RemapX(bbox.left);
+            float y = RemapY(bbox.top);
+            float w = RemapX(bbox.right) - x;
+            float h = RemapY(bbox.bottom) - y;
+            g.DrawRectangle(new Pen(color, 2), x, y, w, h);
+        }
+
+        public void DrawNode(Graphics g, int nodeId)
+        {
+            var node = NODES[nodeId];
+            var bboxFront = node.right; //front;
+            var bboxBack = node.left; //back;
+            DrawBBox(g, bboxFront, Color.Green);
+            DrawBBox(g, bboxBack, Color.Red);
+            float x1 = RemapX(node.partition_x);
+            float y1 = RemapY(node.partition_y);
+            float x2 = RemapX(node.partition_x + node.partition_x_change);
+            float y2 = RemapY(node.partition_y + node.partition_y_change);
+            g.DrawLine(new Pen(Color.Blue, 4), x1, y1, x2, y2);
+        }
+
+        public void DrawPlayerPos(Graphics g)
+        {
+            float x = RemapX(player_pos.X);
+            float y = RemapY(player_pos.Y);
+            g.FillEllipse(new SolidBrush(Color.Orange), x - 8, y - 8, 16, 16);
+        }
+
+
 
         private void MainForm_KeyDown(object? sender, KeyEventArgs e)
         {

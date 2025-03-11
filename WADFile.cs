@@ -293,8 +293,12 @@ namespace DOOM.WAD
         {
             public ReadOnlySpan<thing> things;
             public ReadOnlySpan<linedef> linedefs;
+            public ReadOnlySpan<sidedef> sidedefs;
             public ReadOnlySpan<vertex> vertexes;
+            public ReadOnlySpan<seg> segs;
+            public ReadOnlySpan<subsector> subsectors;
             public ReadOnlySpan<node> nodes;
+            public ReadOnlySpan<sector> sectors;
         }
 
         public MapData GetMapData(string map_name = "E1M1")
@@ -305,8 +309,12 @@ namespace DOOM.WAD
             return new(){
                 things = GetLumpData<thing>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eTHINGS]),
                 linedefs = GetLumpData<linedef>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eLINEDEFS]),
+                sidedefs = GetLumpData<sidedef>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eSIDEDDEFS]),
                 vertexes = GetLumpData<vertex>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eVERTEXES]),
-                nodes = GetLumpData<node>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eNODES])
+                segs = GetLumpData<seg>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eSEAGS]),
+                subsectors = GetLumpData<subsector>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eSSECTORS]),
+                nodes = GetLumpData<node>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eNODES]),
+                sectors = GetLumpData<sector>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eSECTORS])
             };
         }
 

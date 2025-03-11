@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Numerics;
-using System.Security.Cryptography.Pkcs;
-using System.Threading.Tasks;
 
 using DOOM.WAD;
+using static DOOM.WAD.WADFile;
+using static DOOM.WAD.WADFileTypes;
 
 using ModernGL;
-using static DOOM.WAD.WADFileTypes;
 using static ModernGL.glContext;
 
 //glContext ctx;
@@ -60,8 +59,27 @@ namespace DOOM
             this.Load += MainForm_Load;
         }
 
+        List<thing> THINGS = [];
         List<linedef> LINEDEFS = [];
         List<Vector2> VERTEXES = [];
+        List<node> NODES = [];
+
+        short minX = short.MaxValue,
+            maxX = short.MinValue;
+        short minY = short.MaxValue,
+            maxY = short.MinValue;
+
+        float RemapX(float n, float out_min = 30, float out_max = 0)
+        {
+            out_max = out_max == 0 ? this.Width - 30 : out_max;
+            return (Math.Max(minX, Math.Min(n, maxX)) - minX) * (out_max - out_min) / (maxX - minX) + out_min;
+        }
+
+        float RemapY(float n, float out_min = 30, float out_max = 0)
+        {
+            out_max = out_max == 0 ? this.Height - 30 : out_max;
+            return this.Height - (Math.Max(minY, Math.Min(n, maxY)) - minY) * (out_max - out_min) / (maxY - minY) - out_min;
+        }
 
         private void MainForm_Load(object? sender, EventArgs e)
         {
@@ -73,10 +91,6 @@ namespace DOOM
 
             var map = wadloader.GetMapData("E1M2");
 
-            short minX = short.MaxValue,
-                maxX = short.MinValue;
-            short minY = short.MaxValue,
-                maxY = short.MinValue;
             /*
             VERTEXES.ForEach(v => {
                 minX = short.Min(minX, (short)v.X);
@@ -85,7 +99,6 @@ namespace DOOM
                 maxY = short.Max(maxY, (short)v.Y);
             });
             */
-
             foreach (var v in map.vertexes)
             {
                 minX = short.Min(minX, (short)v.pos_x);
@@ -94,32 +107,18 @@ namespace DOOM
                 maxY = short.Max(maxY, (short)v.pos_y);
             }
 
-            int WIDTH = Width, HEIGHT = Height;
+
+            THINGS = [.. map.things];
 
 
-            float RemapX(float n, float out_min = 30, float out_max = 0)
-            {
-                out_max = out_max == 0 ? WIDTH - 30 : out_max;
-                return (Math.Max(minX, Math.Min(n, maxX)) - minX) * (out_max - out_min) / (maxX - minX) + out_min;
-            };
-
-            float RemapY(float n, float out_min = 30, float out_max = 0)
-            {
-                out_max = out_max == 0 ? HEIGHT - 30 : out_max;
-                return HEIGHT - (Math.Max(minY, Math.Min(n, maxY)) - minY) * (out_max - out_min) / (maxY - minY) - out_min;
-            };
-
-            /*
-            VERTEXES = [.. VERTEXES.Select(v => {
-                return new Vector2(RemapX(v.X), RemapY(v.Y));
-            })];
-            */
-
-            foreach (var line in map.linedefs)
-                LINEDEFS.Add(line);
+            //foreach (var line in map.linedefs)
+            //    LINEDEFS.Add(line);
+            LINEDEFS = [.. map.linedefs];
 
             foreach (var v in map.vertexes)
                 VERTEXES.Add(new Vector2(RemapX(v.pos_x), RemapY(v.pos_y)));
+
+            NODES = [.. map.nodes];
 
             renderTimer.Start();
         }

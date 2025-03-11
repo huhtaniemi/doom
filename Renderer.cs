@@ -64,6 +64,9 @@ namespace DOOM
         List<Vector2> VERTEXES = [];
         List<node> NODES = [];
 
+        WADFile? wadloader;
+        internal MapData map => wadloader.GetMapData("E1M3");
+
         short minX = short.MaxValue,
             maxX = short.MinValue;
         short minY = short.MaxValue,
@@ -84,13 +87,12 @@ namespace DOOM
 
         private void MainForm_Load(object? sender, EventArgs e)
         {
-            var wadloader = WADLoader.Open("DOOM1.WAD", buffered: true);
+            wadloader = WADLoader.Open("DOOM1.WAD", buffered: true);
             wadloader.TEST();
 
             //LINEDEFS = wadloader.GetLINEDEFS();
             //VERTEXES = wadloader.GetVERTEXES();
-
-            var map = wadloader.GetMapData("E1M2");
+            //var map = wadloader.GetMapData("E1M2");
 
             /*
             VERTEXES.ForEach(v => {

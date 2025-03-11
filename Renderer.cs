@@ -151,11 +151,10 @@ namespace DOOM
             //    vertices[i] = RotateY(vertices[i], angleY);
             //}
 
+            // draw_linedefs
             var idx = 0;
             foreach (var line in LINEDEFS)
             {
-                //if (line.vertex_id_start >= VERTEXES.Count || line.vertex_id_end >= VERTEXES.Count)
-                //    continue;
                 idx++;
                 var (p1, p2) = (
                     VERTEXES[line.vertex_id_start],

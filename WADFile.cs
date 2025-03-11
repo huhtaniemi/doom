@@ -206,10 +206,10 @@ namespace DOOM.WAD
             // change in n from start to end of partition line
             public short partition_x_change;
             public short partition_y_change;
-            public bounding_box right;
-            public bounding_box left;
-            public ushort child_id_right;
-            public ushort child_id_left;
+            public bounding_box right; // front
+            public bounding_box left; // back
+            public ushort child_id_right; //front_child_id
+            public ushort child_id_left; //back_child_id
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -241,7 +241,28 @@ namespace DOOM.WAD
         public void Dispose()
             => r?.Dispose();
 
+        private ReadOnlySpan<T> GetRefData<T>(uint offset, uint size) where T : struct
+            => MemoryMarshal.Cast<byte, T>(r.GetBytes(offset, size));
 
+        private ReadOnlySpan<T> GetLumpData<T>(filelump lump_info) where T : struct
+            => GetRefData<T>(lump_info.filepos, lump_info.size);
+
+        protected ReadOnlySpan<filelump> filelumps
+            => GetRefData<filelump>(header.infotableofs, header.numlumps * (uint)Marshal.SizeOf<filelump>());
+
+        private int GetIndexByName(ReadOnlySpan<filelump> filelumps, string name)
+        {
+            var lump_index = 0;
+            foreach (ref readonly var filelump in filelumps)
+            {
+                if (filelump.name == name)
+                    return lump_index;
+                lump_index++;
+            }
+            return -1;
+        }
+
+        /*
         protected helper.refData<filelump> filelumps
             => new(r, header.infotableofs, header.numlumps);
 
@@ -263,36 +284,30 @@ namespace DOOM.WAD
             return new helper.refData<T>(r, lump_info.filepos, lump_info.size / (uint)Marshal.SizeOf<T>());
         }
 
+        */
+
 
         // properties
 
         public ref struct MapData
         {
-            public helper.refData<linedef> linedefs;
-            public helper.refData<vertex> vertexes;
-
-            public MapData(helper.refData<linedef> linedefs, helper.refData<vertex> vertexes)
-            {
-                this.linedefs = linedefs;
-                this.vertexes = vertexes;
-            }
+            public ReadOnlySpan<thing> things;
+            public ReadOnlySpan<linedef> linedefs;
+            public ReadOnlySpan<vertex> vertexes;
+            public ReadOnlySpan<node> nodes;
         }
 
         public MapData GetMapData(string map_name = "E1M1")
         {
-            var filelumps = new helper.refData<filelump>(r, header.infotableofs, header.numlumps);
+            var filelumps = this.filelumps; // new helper.refData<filelump>(r, header.infotableofs, header.numlumps);
             var lump_idx = GetIndexByName(filelumps, map_name);
 
-            var things = GetLumpData<thing>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eTHINGS]);
-            var linedefs = GetLumpData<linedef>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eLINEDEFS]);
-            var sidedefs = GetLumpData<sidedef>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eSIDEDDEFS]);
-            var vertexes = GetLumpData<vertex>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eVERTEXES]);
-            var segs = GetLumpData<seg>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eSEAGS]);
-            var subsectors = GetLumpData<subsector>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eSSECTORS]);
-            var nodes = GetLumpData<node>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eNODES]);
-            var sectors = GetLumpData<sector>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eSECTORS]);
-
-            return new(linedefs, vertexes);
+            return new(){
+                things = GetLumpData<thing>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eTHINGS]),
+                linedefs = GetLumpData<linedef>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eLINEDEFS]),
+                vertexes = GetLumpData<vertex>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eVERTEXES]),
+                nodes = GetLumpData<node>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eNODES])
+            };
         }
 
 
@@ -301,6 +316,7 @@ namespace DOOM.WAD
         public void TEST()
         {
             var map_name = "E1M1";
+            //*
             var lump_index = 0;
             foreach (ref readonly var filelump in filelumps)
             {
@@ -311,7 +327,6 @@ namespace DOOM.WAD
                 }
                 lump_index++;
             }
-
 
             {
                 var lump_info = filelumps[lump_index + (int)EMAPLUMPSINDEX.eLINEDEFS];
@@ -327,8 +342,22 @@ namespace DOOM.WAD
                 var vertexes = new helper.refData<vertex>(r, lump_info.filepos, lump_info.size/4);
                 foreach (ref readonly var vex in vertexes)
                 {
-                    VERTEXES.Add(new(vex.pos_x, vex.pos_y));
+                    //VERTEXES.Add(new(vex.pos_x, vex.pos_y));
+                    VERTEXES.Add(vex);
                 }
+            }
+            // */
+
+            {
+                ReadOnlySpan<filelump> filelumps2
+                    = GetRefData<filelump>(header.infotableofs, header.numlumps * (uint)Marshal.SizeOf<filelump>());
+                var lump_index2 = GetIndexByName(filelumps2, map_name);
+                LINEDEFS = [..
+                    GetLumpData<linedef>(filelumps2[lump_index2 + (int)EMAPLUMPSINDEX.eLINEDEFS])
+                ];
+                VERTEXES = [..
+                    GetLumpData<vertex>(filelumps2[lump_index2 + (int)EMAPLUMPSINDEX.eVERTEXES])
+                ];
             }
 
         }
@@ -339,8 +368,8 @@ namespace DOOM.WAD
             return LINEDEFS;
         }
 
-        List<Vector2> VERTEXES = [];
-        public List<Vector2> GetVERTEXES()
+        List<vertex> VERTEXES = [];
+        public List<vertex> GetVERTEXES()
         {
             return VERTEXES;
         }

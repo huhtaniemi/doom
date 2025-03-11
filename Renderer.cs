@@ -44,7 +44,7 @@ namespace DOOM
         {
             this.DoubleBuffered = true;
             this.Width = 320*5;
-            this.Height = 200*5;
+            this.Height = 200*5 + 40;
 
             renderTimer = new System.Windows.Forms.Timer();
             renderTimer.Interval = 16; // ~60 FPS
@@ -77,8 +77,9 @@ namespace DOOM
 
         float RemapY(float n, float out_min = 30, float out_max = 0)
         {
-            out_max = out_max == 0 ? this.Height - 30 : out_max;
-            return this.Height - (Math.Max(minY, Math.Min(n, maxY)) - minY) * (out_max - out_min) / (maxY - minY) - out_min;
+            var HEIGHT = this.Height - 30;
+            out_max = out_max == 0 ? HEIGHT - 30 : out_max;
+            return HEIGHT - (Math.Max(minY, Math.Min(n, maxY)) - minY) * (out_max - out_min) / (maxY - minY) - out_min;
         }
 
         private void MainForm_Load(object? sender, EventArgs e)
@@ -116,7 +117,7 @@ namespace DOOM
             LINEDEFS = [.. map.linedefs];
 
             foreach (var v in map.vertexes)
-                VERTEXES.Add(new Vector2(RemapX(v.pos_x), RemapY(v.pos_y)));
+                VERTEXES.Add(new Vector2((v.pos_x), (v.pos_y)));
 
             NODES = [.. map.nodes];
 
@@ -159,11 +160,11 @@ namespace DOOM
                     VERTEXES[line.vertex_id_start],
                     VERTEXES[line.vertex_id_end]
                 );
-                g.DrawLine(Pens.Orange, p1.X, p1.Y, p2.X, p2.Y);
+                g.DrawLine(Pens.Orange, RemapX(p1.X), RemapY(p1.Y), RemapX(p2.X), RemapY(p2.Y));
             }
 
-            foreach (var vex in VERTEXES)
-                g.DrawEllipse(Pens.White, vex.X-1, vex.Y-1, 2, 2);
+            foreach (var v in VERTEXES)
+                g.DrawEllipse(Pens.White, RemapX(v.X)-1, RemapY(v.Y)-1, 2, 2);
         }
 
         private void MainForm_KeyDown(object? sender, KeyEventArgs e)

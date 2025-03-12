@@ -132,14 +132,14 @@ namespace DOOM
         float RemapX(float n, float out_min = 30, float out_max = 0)
         {
             out_max = out_max == 0 ? this.Width - 30 : out_max;
-            return (Math.Max(minX, Math.Min(n, maxX)) - minX) * (out_max - out_min) / (maxX - minX) + out_min;
+            return (float)(Math.Max(minX, Math.Min(n, maxX)) - minX) * (out_max - out_min) / (maxX - minX) + out_min;
         }
 
         float RemapY(float n, float out_min = 30, float out_max = 0)
         {
             var HEIGHT = this.Height - 30;
             out_max = out_max == 0 ? HEIGHT - 30 : out_max;
-            return HEIGHT - (Math.Max(minY, Math.Min(n, maxY)) - minY) * (out_max - out_min) / (maxY - minY) - out_min;
+            return HEIGHT - (float)(Math.Max(minY, Math.Min(n, maxY)) - minY) * (out_max - out_min) / (maxY - minY) - out_min;
         }
 
         private void MainForm_Load(object? sender, EventArgs e)
@@ -208,31 +208,13 @@ namespace DOOM
 
             player.Control((float)renderTimer.Interval);
 
-            // draw_linedefs
-            var idx = 0;
-            foreach (var line in LINEDEFS)
-            {
-                idx++;
-                var (p1, p2) = (
-                    VERTEXES[line.vertex_id_start],
-                    VERTEXES[line.vertex_id_end]
-                );
-                g.DrawLine(Pens.Orange, RemapX(p1.X), RemapY(p1.Y), RemapX(p2.X), RemapY(p2.Y));
-            }
-
-            /*
-            foreach (var v in VERTEXES)
-                g.DrawEllipse(Pens.White, RemapX(v.X)-1, RemapY(v.Y)-1, 2, 2);
-            */
-
-
-            // draw_player_pos
+            DrawLinedefs(g);
             DrawPlayerPos(g);
 
             // draw_node(node_id = self.engine.bsp.root_node_id)
             var root_node_id = map.nodes.Length - 1;
+            //DrawNode(g, root_node_id);
             bsp.RenderBspNode(map, root_node_id, player.pos, (seg, subSectorId) => DrawSeg(g, seg, subSectorId));
-            DrawNode(g, root_node_id);
         }
 
         public void DrawSeg(Graphics g, seg seg, int subSectorId)
@@ -263,6 +245,22 @@ namespace DOOM
             float x2 = RemapX(node.partition_x + node.partition_dx);
             float y2 = RemapY(node.partition_y + node.partition_dy);
             g.DrawLine(new Pen(Color.Blue, 4), x1, y1, x2, y2);
+        }
+
+        public void DrawLinedefs(Graphics g)
+        {
+            foreach (var line in LINEDEFS)
+            {
+                var (p1, p2) = (
+                    VERTEXES[line.vertex_id_start],
+                    VERTEXES[line.vertex_id_end]
+                );
+                g.DrawLine(Pens.Red, RemapX(p1.X), RemapY(p1.Y), RemapX(p2.X), RemapY(p2.Y));
+            }
+            /*
+            foreach (var v in VERTEXES)
+                g.DrawEllipse(Pens.White, RemapX(v.X)-1, RemapY(v.Y)-1, 2, 2);
+            */
         }
 
         public void DrawPlayerPos(Graphics g)

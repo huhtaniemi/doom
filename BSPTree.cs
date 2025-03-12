@@ -130,7 +130,7 @@ namespace DOOM
             return (MathF.Atan2(delta.Y, delta.X) * (180.0f / MathF.PI)) % 360;
         }
 
-        public void RenderBspNode(MapData map, Player player, ushort node_id, Action<seg, ushort> DrawSeg)
+        public void RenderBspNode(MapData map, Player player, ushort node_id, Action<seg, ushort> DrawSeg, Action<node.bounding_box> DrawBox)
         {
             if (node_id >= NF_SUBSECTOR)
             {
@@ -144,18 +144,20 @@ namespace DOOM
             var OnBackSide  = IsOnBackSide(player, node);
             if (OnBackSide)
             {
-                RenderBspNode(map, player, node.child_id_left, DrawSeg);
+                RenderBspNode(map, player, node.child_id_left, DrawSeg, DrawBox);
                 if (CheckBBox(player, node.right)) // front
                 {
-                    RenderBspNode(map, player, node.child_id_right, DrawSeg);
+                    DrawBox(node.right);
+                    RenderBspNode(map, player, node.child_id_right, DrawSeg, DrawBox);
                 }
             }
             else
             {
-                RenderBspNode(map, player, node.child_id_right, DrawSeg);
+                RenderBspNode(map, player, node.child_id_right, DrawSeg, DrawBox);
                 if (CheckBBox(player, node.left)) // back
                 {
-                    RenderBspNode(map, player, node.child_id_left, DrawSeg);
+                    DrawBox(node.left);
+                    RenderBspNode(map, player, node.child_id_left, DrawSeg, DrawBox);
                 }
             }
         }

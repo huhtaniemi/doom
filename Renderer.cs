@@ -214,7 +214,7 @@ namespace DOOM
             // draw_node(node_id = self.engine.bsp.root_node_id)
             var root_node_id = map.nodes.Length - 1;
             //DrawNode(g, root_node_id);
-            bsp.RenderBspNode(map, player, (ushort)root_node_id, (seg, id) => DrawSeg(g, seg, id));
+            bsp.RenderBspNode(map, player, (ushort)root_node_id, (seg, id) => DrawSeg(g, seg, id), (bbox) => DrawBBox(g, bbox, Color.Aquamarine));
         }
 
         public void DrawSeg(Graphics g, seg seg, int id)

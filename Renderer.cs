@@ -32,11 +32,63 @@ namespace DOOM
 
     public partial class Renderer : Form
     {
+        public class Player
+        {
+            public Vector2 pos { get; set; }
+            public float angle { get; set; }
+
+            const float PLAYER_SPEED = 0.3f;
+            const float PLAYER_ROT_SPEED = 0.12f;
+
+            public void Control(float dt)
+            {
+                float speed = PLAYER_SPEED * dt;
+                float rotSpeed = PLAYER_ROT_SPEED * dt;
+
+                if (Keyboard.IsKeyDown(Keys.Left))
+                    angle += rotSpeed;
+                if (Keyboard.IsKeyDown(Keys.Right))
+                    angle -= rotSpeed;
+
+                Vector2 inc = Vector2.Zero;
+                if (Keyboard.IsKeyDown(Keys.A))
+                    inc += new Vector2(0, speed);
+                if (Keyboard.IsKeyDown(Keys.D))
+                    inc += new Vector2(0, -speed);
+                if (Keyboard.IsKeyDown(Keys.W))
+                    inc += new Vector2(speed, 0);
+                if (Keyboard.IsKeyDown(Keys.S))
+                    inc += new Vector2(-speed, 0);
+
+                const float DIAG_MOVE_CORR = 0.7071f; // 1/sqrt(2) for diagonal movement correction
+                if (inc.X != 0 && inc.Y != 0)
+                    inc *= DIAG_MOVE_CORR;
+
+                inc = RotateInPlace(inc, angle);
+                pos += inc;
+            }
+
+            //public static void RotateInPlace(ref this Vector2 vector, float angleDegrees)
+            public Vector2 RotateInPlace(Vector2 vector, float angleDegrees)
+            {
+                float angleRadians = (MathF.PI / 180f) * angleDegrees;
+                float cos = MathF.Cos(angleRadians);
+                float sin = MathF.Sin(angleRadians);
+                return new(vector.X * cos - vector.Y * sin, vector.X * sin + vector.Y * cos);
+            }
+
+            public static class Keyboard
+            {
+                private static HashSet<Keys> keys = new HashSet<Keys>();
+                public static void KeyDown(Keys key) => keys.Add(key);
+                public static void KeyUp(Keys key) => keys.Remove(key);
+                public static bool IsKeyDown(Keys key) => keys.Contains(key);
+            }
+        }
+
         private System.Windows.Forms.Timer renderTimer;
         private Stopwatch stopwatch;
-        private Vector2 player_pos;
-        private float angleX;
-        private float angleY;
+        Player player = new();
         private int fps;
         private int frameCount;
         private Point lastMousePosition;
@@ -58,6 +110,9 @@ namespace DOOM
             this.MouseMove += MainForm_MouseMove;
             this.MouseDown += MainForm_MouseDown;
             this.Load += MainForm_Load;
+
+            KeyDown += (sender, e) => Player.Keyboard.KeyDown(e.KeyCode);
+            KeyUp += (sender, e) => Player.Keyboard.KeyUp(e.KeyCode);
         }
 
         List<thing> THINGS = [];
@@ -115,8 +170,8 @@ namespace DOOM
 
             THINGS = [.. map.things];
 
-            player_pos = new(THINGS[0].pos_x, THINGS[0].pos_y);
-            angleX = THINGS[0].angle_facing;
+            player.pos = new(THINGS[0].pos_x, THINGS[0].pos_y);
+            player.angle = THINGS[0].angle_facing;
 
             //foreach (var line in map.linedefs)
             //    LINEDEFS.Add(line);
@@ -151,11 +206,7 @@ namespace DOOM
             }
             g.DrawString($"FPS: {fps}", this.Font, Brushes.White, 10, 10);
 
-            //for (int i = 0; i < vertices.Length; i++)
-            //{
-            //    vertices[i] = RotateX(vertices[i], angleX);
-            //    vertices[i] = RotateY(vertices[i], angleY);
-            //}
+            player.Control((float)renderTimer.Interval);
 
             // draw_linedefs
             var idx = 0;
@@ -174,12 +225,13 @@ namespace DOOM
                 g.DrawEllipse(Pens.White, RemapX(v.X)-1, RemapY(v.Y)-1, 2, 2);
             */
 
+
             // draw_player_pos
             DrawPlayerPos(g);
 
             // draw_node(node_id = self.engine.bsp.root_node_id)
             var root_node_id = map.nodes.Length - 1;
-            bsp.RenderBspNode(map, root_node_id, player_pos, (seg, subSectorId) => DrawSeg(g, seg, subSectorId));
+            bsp.RenderBspNode(map, root_node_id, player.pos, (seg, subSectorId) => DrawSeg(g, seg, subSectorId));
             DrawNode(g, root_node_id);
         }
 
@@ -215,8 +267,8 @@ namespace DOOM
 
         public void DrawPlayerPos(Graphics g)
         {
-            float x = RemapX(player_pos.X);
-            float y = RemapY(player_pos.Y);
+            float x = RemapX(player.pos.X);
+            float y = RemapY(player.pos.Y);
             g.FillEllipse(new SolidBrush(Color.Orange), x - 8, y - 8, 16, 16);
         }
 
@@ -234,8 +286,6 @@ namespace DOOM
         {
             if (e.Button == MouseButtons.Left)
             {
-                angleX += (e.Y - lastMousePosition.Y) * 0.5f;
-                angleY += (e.X - lastMousePosition.X) * 0.5f;
                 lastMousePosition = e.Location;
                 this.Invalidate();
             }

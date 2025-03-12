@@ -8,7 +8,8 @@ namespace DOOM
     public class BSP
     {
         private const ushort NF_SUBSECTOR = 0x8000; // 2**15 = 32768
-        //public readonly int rootNodeId;
+        public const float FOV = 90;
+        public const float H_FOV = FOV / 2;
 
         public void RenderBspNode(MapData map, int bspnum, Vector2 player, Action<seg, int> DrawSeg)
         {

@@ -269,9 +269,27 @@ namespace DOOM
         {
             float x = RemapX(player.pos.X);
             float y = RemapY(player.pos.Y);
+            DrawFov(g, x, y);
             g.FillEllipse(new SolidBrush(Color.Orange), x - 8, y - 8, 16, 16);
         }
 
+        public void DrawFov(Graphics g, float px, float py)
+        {
+            float angle = -player.angle + 90;
+            float sinA1 = MathF.Sin((MathF.PI / 180f) * (angle - BSP.H_FOV));
+            float cosA1 = MathF.Cos((MathF.PI / 180f) * (angle - BSP.H_FOV));
+            float sinA2 = MathF.Sin((MathF.PI / 180f) * (angle + BSP.H_FOV));
+            float cosA2 = MathF.Cos((MathF.PI / 180f) * (angle + BSP.H_FOV));
+
+            float lenRay = this.Height;
+            float x = player.pos.X;
+            float y = player.pos.Y;
+
+            var (x1, y1) = (RemapX(x + lenRay * sinA1), RemapY(y + lenRay * cosA1));
+            var (x2, y2) = (RemapX(x + lenRay * sinA2), RemapY(y + lenRay * cosA2));
+            g.DrawLine(Pens.Yellow, px, py, x1, y1);
+            g.DrawLine(Pens.Yellow, px, py, x2, y2);
+        }
 
 
         private void MainForm_KeyDown(object? sender, KeyEventArgs e)

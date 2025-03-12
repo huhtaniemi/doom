@@ -190,12 +190,13 @@ namespace DOOM.WAD
         public struct subsector
         {
             public ushort seg_count;
-            public ushort first_seg_id;
+            public ushort seg_id_first;
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct node
         {
+            [StructLayout(LayoutKind.Sequential, Pack = 1)]
             public struct bounding_box
             {
                 public short top, bottom, left, right;
@@ -204,8 +205,8 @@ namespace DOOM.WAD
             public short partition_x;
             public short partition_y;
             // change in n from start to end of partition line
-            public short partition_x_change;
-            public short partition_y_change;
+            public short partition_dx;
+            public short partition_dy;
             public bounding_box right; // front
             public bounding_box left; // back
             public ushort child_id_right; //front_child_id

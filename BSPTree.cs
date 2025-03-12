@@ -48,7 +48,7 @@ namespace DOOM
         {
             float dx = player.X - node.partition_x;
             float dy = player.Y - node.partition_y;
-            return dx * node.partition_y_change - dy * node.partition_x_change <= 0;
+            return dx * node.partition_dy - dy * node.partition_dx <= 0.0f;
         }
     }
 

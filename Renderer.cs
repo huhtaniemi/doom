@@ -207,10 +207,9 @@ namespace DOOM
             var bboxBack = node.left; //back;
             DrawBBox(g, bboxFront, Color.Green);
             DrawBBox(g, bboxBack, Color.Red);
-            float x1 = RemapX(node.partition_x);
-            float y1 = RemapY(node.partition_y);
-            float x2 = RemapX(node.partition_x + node.partition_x_change);
-            float y2 = RemapY(node.partition_y + node.partition_y_change);
+            var (x1, y1) = (RemapX(node.partition_x), RemapY(node.partition_y));
+            float x2 = RemapX(node.partition_x + node.partition_dx);
+            float y2 = RemapY(node.partition_y + node.partition_dy);
             g.DrawLine(new Pen(Color.Blue, 4), x1, y1, x2, y2);
         }
 

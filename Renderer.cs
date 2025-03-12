@@ -122,7 +122,7 @@ namespace DOOM
 
         BSP bsp = new();
         WADFile? wadloader;
-        internal MapData map => wadloader.GetMapData("E1M3");
+        internal MapData map => wadloader.GetMapData("E1M1");
 
         short minX = short.MaxValue,
             maxX = short.MinValue;
@@ -214,14 +214,14 @@ namespace DOOM
             // draw_node(node_id = self.engine.bsp.root_node_id)
             var root_node_id = map.nodes.Length - 1;
             //DrawNode(g, root_node_id);
-            bsp.RenderBspNode(map, root_node_id, player.pos, (seg, subSectorId) => DrawSeg(g, seg, subSectorId));
+            bsp.RenderBspNode(map, player, (ushort)root_node_id, (seg, id) => DrawSeg(g, seg, id));
         }
 
-        public void DrawSeg(Graphics g, seg seg, int subSectorId)
+        public void DrawSeg(Graphics g, seg seg, int id)
         {
             var v1 = VERTEXES[seg.vertex_id_start];
             var v2 = VERTEXES[seg.vertex_id_end];
-            g.DrawLine(Pens.GreenYellow, RemapX(v1.X), RemapY(v1.Y), RemapX(v2.X), RemapY(v2.Y));
+            g.DrawLine(Pens.Green, RemapX(v1.X), RemapY(v1.Y), RemapX(v2.X), RemapY(v2.Y));
         }
 
 

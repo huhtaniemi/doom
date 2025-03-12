@@ -231,7 +231,7 @@ namespace DOOM
             float y = RemapY(bbox.top);
             float w = RemapX(bbox.right) - x;
             float h = RemapY(bbox.bottom) - y;
-            g.DrawRectangle(new Pen(color, 2), x, y, w, h);
+            g.DrawRectangle(new Pen(color, 0.5f), x, y, w, h);
         }
 
         public void DrawNode(Graphics g, int nodeId)

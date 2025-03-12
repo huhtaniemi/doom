@@ -21,6 +21,49 @@ namespace DOOM
         public static int AngleToX(float angle)
             => (int)(SCREEN_DIST - MathF.Tan(radians(angle)) * H_WIDTH);
 
+        public bool AddSegmentToFov(Player player, vertex v1, vertex v2, out (int x1, int x2, float rwAngle1) result)
+        {
+            result = (0, 0, 0);
+
+            float angle1 = PointToAngle(player, new Vector2(v1.pos_x, v1.pos_y));
+            float angle2 = PointToAngle(player, new Vector2(v2.pos_x, v2.pos_y));
+
+            float span = Norm(angle1 - angle2);
+            // backface culling
+            if (span >= 180.0f)
+                return false;
+
+            // needed for further calculations
+            float rwAngle1 = angle1;
+
+            angle1 -= player.angle;
+            angle2 -= player.angle;
+
+            float span1 = Norm(angle1 + H_FOV);
+            if (span1 > FOV)
+            {
+                if (span1 >= span + FOV)
+                    return false;
+                // clipping
+                angle1 = H_FOV;
+            }
+
+            float span2 = Norm(H_FOV - angle2);
+            if (span2 > FOV)
+            {
+                if (span2 >= span + FOV)
+                    return false;
+                // clipping
+                angle2 = -H_FOV;
+            }
+
+            int x1 = AngleToX(angle1);
+            int x2 = AngleToX(angle2);
+            result = (x1, x2, rwAngle1);
+
+            return true;
+        }
+
         public static float Norm(float angle)
             => ((angle % 360f) + 360f) % 360f;
 
@@ -124,7 +167,11 @@ namespace DOOM
             for (int i = 0; i < subSector.seg_count; i++)
             {
                 var seg = map.segs[subSector.seg_id_first + i];
-                DrawSeg(seg, subSectorId);
+                (int x1, int x2, float rwAngle1) result;
+                if (AddSegmentToFov(player, map.vertexes[seg.vertex_id_start], map.vertexes[seg.vertex_id_end], out result))
+                {
+                    DrawSeg(seg, subSectorId);
+                }
             }
         }
 

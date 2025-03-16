@@ -11,9 +11,12 @@ namespace DOOM
         private const ushort NF_SUBSECTOR = 0x8000; // 2**15 = 32768
         public const float FOV = 90;
         public const float H_FOV = FOV / 2;
-        const float WIDTH = (320f * 5);
-        const float H_WIDTH = WIDTH / 2;
-        static float SCREEN_DIST = H_WIDTH / MathF.Tan((MathF.PI / 180f) * H_FOV);
+        public const float SCALE = 2.5f;
+        public const float WIDTH = (320f * SCALE);
+        public const float HEIGHT = (200f * SCALE);
+        public const float H_WIDTH = WIDTH / 2;
+        public const float H_HEIGHT = HEIGHT / 2;
+        public static float SCREEN_DIST = H_WIDTH / MathF.Tan((MathF.PI / 180f) * H_FOV);
 
         static float radians(float angle)
              => MathF.PI / 180f * angle;

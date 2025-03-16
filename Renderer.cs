@@ -96,8 +96,8 @@ namespace DOOM
         public Renderer()
         {
             this.DoubleBuffered = true;
-            this.Width = 320*5;
-            this.Height = 200*5 + 40;
+            this.Width = (int)BSP.WIDTH;
+            this.Height = (int)BSP.HEIGHT + 40;
 
             renderTimer = new System.Windows.Forms.Timer();
             renderTimer.Interval = 16; // ~60 FPS

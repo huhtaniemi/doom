@@ -3,6 +3,7 @@ using System.Text;
 using System.Runtime.InteropServices;
 using static DOOM.WAD.WADFileTypes;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 #pragma warning disable CS8981
 
@@ -300,6 +301,91 @@ namespace DOOM.WAD
             public ReadOnlySpan<subsector> subsectors;
             public ReadOnlySpan<node> nodes;
             public ReadOnlySpan<sector> sectors;
+
+            public MapData(WADFile wad, string map_name)
+                : this(wad, wad.GetIndexByName(wad.filelumps, map_name)) { }
+
+            public MapData(WADFile wad, int lump_idx)
+            {
+                var filelumps = wad.filelumps;
+                things = wad.GetLumpData<thing>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eTHINGS]);
+                linedefs = wad.GetLumpData<linedef>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eLINEDEFS]);
+                sidedefs = wad.GetLumpData<sidedef>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eSIDEDDEFS]);
+                vertexes = wad.GetLumpData<vertex>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eVERTEXES]);
+                segs = wad.GetLumpData<seg>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eSEAGS]);
+                subsectors = wad.GetLumpData<subsector>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eSSECTORS]);
+                nodes = wad.GetLumpData<node>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eNODES]);
+                sectors = wad.GetLumpData<sector>(filelumps[lump_idx + (int)EMAPLUMPSINDEX.eSECTORS]);
+            }
+
+
+            // sidedefs
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly sector sidedef_sector(sidedef s) => sectors[s.sector_id];
+
+            // linedefs
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly sidedef linedef_front_sidedef(linedef l) => sidedefs[l.sidedef_id_front];
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly sidedef? linedef_back_sidedef(linedef l)
+                => l.sidedef_id_back == 0xFFFF ? null : sidedefs[l.sidedef_id_back];
+
+            // segs
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly vertex seg_start_vertex(seg s) => vertexes[s.vertex_id_start];
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly vertex seg_end_vertex(seg s) => vertexes[s.vertex_id_end];
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly linedef seg_linedef(seg s) => linedefs[s.linedef_id];
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly float seg_angle(seg s)
+            {
+                //return ((int)s.slope_angle << 16) * 8.38190317e-8f;
+                var a = ((int)s.slope_angle << 16) * 8.38190317e-8f;
+                if (a < 0)
+                    return (a + 360);
+                else return a;
+
+            }
+
+            public readonly sidedef? seg_front_sidedef(seg s) => s.direction > 0
+                    ? linedef_back_sidedef(seg_linedef(s))
+                    : linedef_front_sidedef(seg_linedef(s));
+
+            public readonly sidedef? seg_back_sidedef(seg s) => s.direction > 0
+                    ? linedef_front_sidedef(seg_linedef(s))
+                    : linedef_back_sidedef(seg_linedef(s));
+
+            public readonly sector seg_front_sector(seg s) => sidedef_sector(seg_front_sidedef(s)??new());
+
+            public readonly sector? seg_back_sector(seg s)
+                => (seg_linedef(s).flags & (ushort)linedef.FLAGS.ML_TWOSIDED) > 0
+                ? sidedef_sector(seg_back_sidedef(s) ?? new()) : null;
+
+            // subsector
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly seg subsec_seg_first(subsector ss) => segs[ss.seg_id_first];
+
+
+            // segs combo
+            public readonly sector seg_front_sidedef_sector(int sub_sector_id)
+            {
+                var sub_sector = subsectors[sub_sector_id];
+                //var seg = segs[sub_sector.seg_id_first];
+                var seg = subsec_seg_first(sub_sector);
+
+                var linedef = linedefs[seg.linedef_id];
+                var seg_front_sidedef = seg.direction > 0
+                    ? sidedefs[linedef.sidedef_id_back] // linedef_back_sidedef(linedef)
+                    : sidedefs[linedef.sidedef_id_front]; // linedef_front_sidedef(linedef)
+                //var seg_front_sidedef = this.seg_front_sidedef(seg);
+
+                //return sectors[seg_front_sidedef.sector_id];
+                return sidedef_sector(seg_front_sidedef);
+            }
         }
 
         public MapData GetMapData(string map_name = "E1M1")

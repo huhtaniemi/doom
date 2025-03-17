@@ -71,6 +71,11 @@ namespace DOOM.WAD
         }
 
 
+        // Subsector Identifier is the 16th bit which
+        // indicate if the node ID is a subsector.
+        // 0x8000 in binary 1000000000000000
+        public const ushort NF_SUBSECTOR = 0x8000;
+
         public enum EMAPLUMPSINDEX
         {
             eName,

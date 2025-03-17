@@ -8,7 +8,7 @@ namespace DOOM
 {
     public class BSP
     {
-        private const ushort NF_SUBSECTOR = 0x8000; // 2**15 = 32768
+        private const ushort NF_SUBSECTOR = WADFileTypes.NF_SUBSECTOR;
         public const float FOV = 90;
         public const float H_FOV = FOV / 2;
         public const float SCALE = 2.5f;

@@ -37,8 +37,11 @@ namespace DOOM
             public Vector2 pos { get; set; }
             public float angle { get; set; }
 
+            public int height = (int)PLAYER_HEIGHT;
+
             const float PLAYER_SPEED = 0.3f;
             const float PLAYER_ROT_SPEED = 0.12f;
+            public const float PLAYER_HEIGHT = 41;
 
             public void Control(float dt)
             {
@@ -113,6 +116,10 @@ namespace DOOM
 
             KeyDown += (sender, e) => Player.Keyboard.KeyDown(e.KeyCode);
             KeyUp += (sender, e) => Player.Keyboard.KeyUp(e.KeyCode);
+
+            view_renderer = new();
+            seg_handler = new(view_renderer, player);
+            bsp = new(seg_handler);
         }
 
         List<thing> THINGS = [];
@@ -120,7 +127,10 @@ namespace DOOM
         List<Vector2> VERTEXES = [];
         List<node> NODES = [];
 
-        BSP bsp = new();
+        ViewRenderer view_renderer;
+        SegHandler seg_handler;
+        BSP bsp;
+
         WADFile? wadloader;
         internal MapData map => wadloader.GetMapData("E1M1");
 
@@ -146,6 +156,8 @@ namespace DOOM
         {
             wadloader = WADLoader.Open("DOOM1.WAD", buffered: true);
             wadloader.TEST();
+
+            bsp.root_node_id = (ushort)(map.nodes.Length - 1);
 
             //LINEDEFS = wadloader.GetLINEDEFS();
             //VERTEXES = wadloader.GetVERTEXES();
@@ -206,32 +218,39 @@ namespace DOOM
             }
             g.DrawString($"FPS: {fps}", this.Font, Brushes.White, 10, 10);
 
+            player.height = bsp.GetSubSectorHeight(map, player) + (int)Player.PLAYER_HEIGHT;
+
             player.Control((float)renderTimer.Interval);
+
+            seg_handler.Update();
+
+            bsp.is_traverse_bsp = true;
+            bsp.RenderBspNode(map, player, g, bsp.root_node_id, (seg, id) => DrawSeg(g, seg, id), (bbox) => DrawBBox(g, bbox, Color.Aquamarine));
 
             DrawLinedefs(g);
             DrawPlayerPos(g);
-
-            // draw_node(node_id = self.engine.bsp.root_node_id)
-            var root_node_id = map.nodes.Length - 1;
-            //DrawNode(g, root_node_id);
-            bsp.RenderBspNode(map, player, (ushort)root_node_id, (seg, id) => DrawSeg(g, seg, id), (bbox) => DrawBBox(g, bbox, Color.Aquamarine));
         }
 
         public void DrawSeg(Graphics g, seg seg, int id)
         {
+            return;
+            /*
             var v1 = VERTEXES[seg.vertex_id_start];
             var v2 = VERTEXES[seg.vertex_id_end];
             g.DrawLine(Pens.Green, RemapX(v1.X), RemapY(v1.Y), RemapX(v2.X), RemapY(v2.Y));
+            //*/
         }
-
 
         public void DrawBBox(Graphics g, node.bounding_box bbox, Color color)
         {
+            return;
+            /*
             float x = RemapX(bbox.left);
             float y = RemapY(bbox.top);
             float w = RemapX(bbox.right) - x;
             float h = RemapY(bbox.bottom) - y;
             g.DrawRectangle(new Pen(color, 0.5f), x, y, w, h);
+            //*/
         }
 
         public void DrawNode(Graphics g, int nodeId)

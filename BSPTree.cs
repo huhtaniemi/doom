@@ -6,8 +6,10 @@ using static DOOM.WAD.WADFileTypes;
 
 namespace DOOM
 {
-    public class BSP
+    public class BSP(SegHandler seg_handler)
     {
+        SegHandler seg_handler = seg_handler;
+
         private const ushort NF_SUBSECTOR = WADFileTypes.NF_SUBSECTOR;
         public const float FOV = 90;
         public const float H_FOV = FOV / 2;
@@ -17,6 +19,37 @@ namespace DOOM
         public const float H_WIDTH = WIDTH / 2;
         public const float H_HEIGHT = HEIGHT / 2;
         public static float SCREEN_DIST = H_WIDTH / MathF.Tan((MathF.PI / 180f) * H_FOV);
+
+        public ushort root_node_id = ushort.MaxValue;
+        public bool is_traverse_bsp = true;
+
+        public int GetSubSectorHeight(MapData map, Player player)
+        {
+            int sub_sector_id = root_node_id;
+            while (sub_sector_id < NF_SUBSECTOR)
+            {
+                var node = map.nodes[sub_sector_id];
+
+                bool is_on_back = IsOnBackSide(player, node);
+                if (is_on_back)
+                    sub_sector_id = node.child_id_left;
+                else
+                    sub_sector_id = node.child_id_right;
+            }
+            return map.seg_front_sidedef_sector(sub_sector_id - NF_SUBSECTOR).height_floor;
+
+            /*
+            var sub_sector = map.subsectors[sub_sector_id - NF_SUBSECTOR];
+            var seg = map.segs[sub_sector.seg_id_first];
+
+            var seg_linedef = map.linedefs[seg.linedef_id];
+            var seg_front_sidedef = map.sidedefs[seg.direction > 0
+                ? seg_linedef.sidedef_id_back
+                : seg_linedef.sidedef_id_front
+            ];
+            return map.sectors[seg_front_sidedef.sector_id].height_floor;
+            */
+        }
 
         static float radians(float angle)
              => MathF.PI / 180f * angle;
@@ -133,12 +166,18 @@ namespace DOOM
             return (MathF.Atan2(delta.Y, delta.X) * (180.0f / MathF.PI)) % 360;
         }
 
-        public void RenderBspNode(MapData map, Player player, ushort node_id, Action<seg, ushort> DrawSeg, Action<node.bounding_box> DrawBox)
+        public void RenderBspNode(MapData map, Player player, Graphics g, ushort node_id,
+            Action<seg, ushort> DrawSeg, Action<node.bounding_box> DrawBox)
         {
+            if (is_traverse_bsp == false)
+                return;
+
+            // if ((bspnum & NF_SUBSECTOR) != 0)
+            //   sub_sector_id = (bspnum == -1) ? 0 : (bspnum & ~NF_SUBSECTOR);
             if (node_id >= NF_SUBSECTOR)
             {
                 var sub_sector_id = node_id - NF_SUBSECTOR;
-                RenderSubSector(map, (ushort)sub_sector_id, player, DrawSeg);
+                RenderSubSector(map, g, (ushort)sub_sector_id, player, DrawSeg);
                 return;
             }
 
@@ -147,25 +186,25 @@ namespace DOOM
             var OnBackSide  = IsOnBackSide(player, node);
             if (OnBackSide)
             {
-                RenderBspNode(map, player, node.child_id_left, DrawSeg, DrawBox);
+                RenderBspNode(map, player, g, node.child_id_left, DrawSeg, DrawBox);
                 if (CheckBBox(player, node.right)) // front
                 {
                     DrawBox(node.right);
-                    RenderBspNode(map, player, node.child_id_right, DrawSeg, DrawBox);
+                    RenderBspNode(map, player, g, node.child_id_right, DrawSeg, DrawBox);
                 }
             }
             else
             {
-                RenderBspNode(map, player, node.child_id_right, DrawSeg, DrawBox);
+                RenderBspNode(map, player, g, node.child_id_right, DrawSeg, DrawBox);
                 if (CheckBBox(player, node.left)) // back
                 {
                     DrawBox(node.left);
-                    RenderBspNode(map, player, node.child_id_left, DrawSeg, DrawBox);
+                    RenderBspNode(map, player, g, node.child_id_left, DrawSeg, DrawBox);
                 }
             }
         }
 
-        private void RenderSubSector(MapData map, ushort subSectorId, Player player, Action<seg, ushort> DrawSeg)
+        private void RenderSubSector(MapData map, Graphics g, ushort subSectorId, Player player, Action<seg, ushort> DrawSeg)
         {
             var subSector = map.subsectors[subSectorId];
 
@@ -176,6 +215,7 @@ namespace DOOM
                 if (AddSegmentToFov(player, map.vertexes[seg.vertex_id_start], map.vertexes[seg.vertex_id_end], out result))
                 {
                     DrawSeg(seg, subSectorId);
+                    seg_handler.ClassifySegment(map, g, seg, result.x1, result.x2, result.rwAngle1, ref is_traverse_bsp);
                 }
             }
         }

@@ -168,9 +168,9 @@ namespace DOOM.WAD
         {
             public short offset_x;
             public short offset_y;
-            public long tex_upper; // helper.Sfn<helper.Sfnbyte8>
-            public long tex_lower;
-            public long tex_middle;
+            public helper.Sfn<helper.Sfnbyte8> tex_upper;
+            public helper.Sfn<helper.Sfnbyte8> tex_lower;
+            public helper.Sfn<helper.Sfnbyte8> tex_middle;
             public ushort sector_id;
         }
 
@@ -224,8 +224,8 @@ namespace DOOM.WAD
         {
             public short height_floor;
             public short height_ceiling;
-            public long tex_floor; // helper.Sfn<helper.Sfnbyte8>
-            public long tex_ceiling;
+            public helper.Sfn<helper.Sfnbyte8> tex_floor;
+            public helper.Sfn<helper.Sfnbyte8> tex_ceiling;
             public ushort light_level;
             public ushort sector_type;
             public ushort tag;

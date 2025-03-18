@@ -93,7 +93,7 @@ namespace DOOM.WAD
         }
 
 
-        // types
+        // map types
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct wadinfo()
@@ -247,18 +247,33 @@ namespace DOOM.WAD
             public ushort tag;
         }
 
+
+        // texture types
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct pnames
+        {
+            public readonly uint count;
+            //public helper.Sfn<helper.Sfnbyte8>[count] names;
+            public uint size { get => 8 * count; }
+        }
     }
 
     public class WADFile : IDisposable
     {
         private readonly BaseReader r;
         private readonly wadinfo header;
+        private readonly filelump pnlump;
 
         internal WADFile(BaseReader reader)
         {
             this.r = reader;
             this.header = MemoryMarshal.Cast<byte, wadinfo>(
                 r.GetBytes(0, (uint)Marshal.SizeOf<wadinfo>()))[0];
+
+            var lump_idx = GetIndexByName(this.filelumps, "PNAMES");
+            this.pnlump = this.filelumps[lump_idx];
+            //var header = GetRefData<pnames>(pnamesheader.filepos, (uint)Marshal.SizeOf<pnames>())[0];
         }
 
         public void Dispose()
@@ -308,6 +323,9 @@ namespace DOOM.WAD
         }
 
         */
+
+        protected ReadOnlySpan<Sfn<Sfnbyte8>> pnames
+            => GetRefData<Sfn<Sfnbyte8>>(pnlump.filepos + 4, pnlump.size - 4);
 
 
         // properties
@@ -455,6 +473,16 @@ namespace DOOM.WAD
 
         public void TEST()
         {
+            foreach (ref readonly var filelump in filelumps)
+            {
+                //Console.WriteLine($"{filelump.name,-8} - offset {filelump.filepos,-7} - size {filelump.size}");
+            }
+
+            foreach (ref readonly var name in this.pnames)
+            {
+                //Console.WriteLine($"{name,-8}");
+            }
+
             var map_name = "E1M1";
             //*
             var lump_index = 0;

@@ -2,8 +2,8 @@
 using System.Text;
 using System.Runtime.InteropServices;
 using static DOOM.WAD.WADFileTypes;
-using System.Numerics;
 using System.Runtime.CompilerServices;
+using static DOOM.WAD.WADFileTypes.helper;
 
 #pragma warning disable CS8981
 
@@ -112,6 +112,22 @@ namespace DOOM.WAD
             private helper.Sfn<helper.Sfnbyte8> _name;
             public readonly string name => _name;
         };
+
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct Palette
+        {
+            [StructLayout(LayoutKind.Sequential, Pack = 1)]
+            public struct Color
+            {
+                public byte r, g, b;
+                public const int SIZE = 3;
+                public static implicit operator System.Drawing.Color(Color obj)
+                    => System.Drawing.Color.FromArgb(obj.r, obj.g, obj.b);
+            }
+            public const int SIZE = Color.SIZE * 256;
+            //public Color[256] colors;
+        }
 
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -410,6 +426,30 @@ namespace DOOM.WAD
             };
         }
 
+        public struct Palette
+        {
+            internal const int SIZE = WADFileTypes.Palette.SIZE;
+            private readonly WADFileTypes.Palette.Color[] colors;
+            public readonly WADFileTypes.Palette.Color this[int index] => colors[index];
+            public Palette(ReadOnlySpan<WADFileTypes.Palette.Color> data)
+            {
+                if (data.Length != 256)
+                    throw new IndexOutOfRangeException();
+                colors = [..data];
+            }
+        }
+
+        public WADFile.Palette GetPalette(int index)
+        {
+            var lump_idx = GetIndexByName(this.filelumps, "PLAYPAL");
+            var filelump = this.filelumps[lump_idx];
+            //var palettes = GetRefData<Palette>(filelump.filepos, filelump.size);
+            //return palettes[index];
+            if (filelump.size < ((uint)index + 1) * Palette.SIZE)
+                throw new IndexOutOfRangeException();
+            var colors = GetRefData<WADFileTypes.Palette.Color>(filelump.filepos + ((uint)index * Palette.SIZE), Palette.SIZE);
+            return new(colors);
+        }
 
         // DEBUG
 

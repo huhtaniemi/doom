@@ -117,7 +117,7 @@ namespace DOOM
             KeyDown += (sender, e) => Player.Keyboard.KeyDown(e.KeyCode);
             KeyUp += (sender, e) => Player.Keyboard.KeyUp(e.KeyCode);
 
-            view_renderer = new();
+            view_renderer = new((g, pen, x, y1, y2) => DrawLineX(g, pen, x, y1, y2), new());
             seg_handler = new(view_renderer, player);
             bsp = new(seg_handler);
         }
@@ -156,6 +156,8 @@ namespace DOOM
         {
             wadloader = WADLoader.Open("DOOM1.WAD", buffered: true);
             wadloader.TEST();
+
+            view_renderer.palette = wadloader.GetPalette(0);
 
             bsp.root_node_id = (ushort)(map.nodes.Length - 1);
 
@@ -306,6 +308,11 @@ namespace DOOM
             var (x2, y2) = (RemapX(x + lenRay * sinA2), RemapY(y + lenRay * cosA2));
             g.DrawLine(Pens.Yellow, px, py, x1, y1);
             g.DrawLine(Pens.Yellow, px, py, x2, y2);
+        }
+
+        public void DrawLineX(Graphics g, Pen pen, int x, int y1, int y2)
+        {
+            g.DrawLine(pen, x, y1, x, y2);
         }
 
 

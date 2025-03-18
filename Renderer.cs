@@ -231,6 +231,7 @@ namespace DOOM
 
             DrawLinedefs(g);
             DrawPlayerPos(g);
+            //DrawPalette(g,0);
         }
 
         public void DrawSeg(Graphics g, seg seg, int id)
@@ -313,6 +314,21 @@ namespace DOOM
         public void DrawLineX(Graphics g, Pen pen, int x, int y1, int y2)
         {
             g.DrawLine(pen, x, y1, x, y2);
+        }
+
+        public void DrawPalette(Graphics g, int idx=0)
+        {
+            var palette = wadloader.GetPalette(idx);
+
+            int size = 10;
+            for (int ix = 0; ix < 16; ix++)
+            {
+                for (int iy = 0; iy < 16; iy++)
+                {
+                    Color col = palette[iy * 16 + ix];
+                    g.FillRectangle(new SolidBrush(col), ix * size, iy * size, size, size);
+                }
+            }
         }
 
 

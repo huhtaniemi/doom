@@ -155,9 +155,10 @@ namespace DOOM
         private void MainForm_Load(object? sender, EventArgs e)
         {
             wadloader = WADLoader.Open("DOOM1.WAD", buffered: true);
-            wadloader.TEST();
+            //wadloader.TEST();
 
             view_renderer.palette = wadloader.GetPalette(0);
+            view_renderer.sprites = wadloader.GetSprites();
 
             bsp.root_node_id = (ushort)(map.nodes.Length - 1);
 
@@ -232,6 +233,7 @@ namespace DOOM
             DrawLinedefs(g);
             DrawPlayerPos(g);
             //DrawPalette(g,0);
+            view_renderer.DrawSprite(g);
         }
 
         public void DrawSeg(Graphics g, seg seg, int id)

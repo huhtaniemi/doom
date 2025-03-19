@@ -1,3 +1,4 @@
+using DOOM.WAD;
 using System;
 using static DOOM.WAD.WADFile;
 
@@ -11,6 +12,7 @@ namespace DOOM
         //private readonly
             public Palette palette = palette;
 
+        public Dictionary<string, WADFile.Patch> sprites = [];
 
         public Color GetColor(string tex, int lightLevel)
         {
@@ -44,6 +46,14 @@ namespace DOOM
                     g.DrawLine(pen, x, y1, x, y2);
                 }
             }
+        }
+
+        public void DrawSprite(Graphics g)
+        {
+            var bitmap = sprites["SHTGA0"].image;
+            int pos_x = (int)BSP.H_WIDTH - bitmap.Width / 2;
+            int pos_y = (int)BSP.HEIGHT - bitmap.Height;
+            g.DrawImage(bitmap, pos_x, pos_y);
         }
     }
 }

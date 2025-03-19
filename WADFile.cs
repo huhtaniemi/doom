@@ -504,15 +504,18 @@ namespace DOOM.WAD
             public readonly PatchHeader header;
             private readonly List<PatchColumn> columns;
             private readonly Palette palette;
-            private readonly Bitmap image;
+            public readonly Bitmap image;
 
-            public Patch(string name, PatchHeader header, List<PatchColumn> columns, Palette palette)
+            public Patch(string name, PatchHeader header, List<PatchColumn> columns, Palette palette, float scale=1.0f)
             {
                 this.names = name;
                 this.header = header;
                 this.columns = columns;
                 this.palette = palette;
                 this.image = GetImage();
+                if (scale != 1.0f)
+                    this.image = new Bitmap(this.image,
+                        (int)(image.Width * scale), (int)(image.Height * scale));
             }
 
             Color COLOR_KEY = Color.FromArgb(152, 0, 136);
@@ -542,7 +545,7 @@ namespace DOOM.WAD
             }
         }
 
-        public WADFile.Patch GetPatch(string name)
+        public WADFile.Patch GetPatch(string name, float scale = 1f)
         {
             var lump_idx = GetIndexByName(this.filelumps, name);
             if (lump_idx < 0)
@@ -576,8 +579,24 @@ namespace DOOM.WAD
                     offset += 4 + (uint)column_header.length;
                 }
             }
-            return new(name, patch_header, patch_columns, this.GetPalette(0));
+            return new(name, patch_header, patch_columns, this.GetPalette(0), scale);
         }
+
+        public Dictionary<string, WADFile.Patch> GetSprites()
+        {
+            Dictionary<string,WADFile.Patch> sprites = [];
+
+            var lump_idx_first = GetIndexByName(this.filelumps, "S_START") + 1;
+            var lump_idx_last = GetIndexByName(this.filelumps, "S_END");
+
+            foreach(var idx in Enumerable.Range(lump_idx_first, lump_idx_last-lump_idx_first))
+            {
+                var spritename = this.filelumps[idx].name;
+                sprites.Add(spritename, GetPatch(spritename, BSP.SCALE));
+            }
+            return sprites;
+        }
+
         // DEBUG
 
         public void TEST()
@@ -593,12 +612,17 @@ namespace DOOM.WAD
                 try
                 {
                     var patch = GetPatch(name.ToString().ToUpper());
-                    Console.WriteLine($"{name,-8} {patch.header.width}x{patch.header.height}");
+                    //Console.WriteLine($"{name,-8} {patch.header.width}x{patch.header.height}");
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e.Message);
+                    //Console.WriteLine(e.Message);
                 }
+            }
+
+            foreach (var (name, patch) in GetSprites())
+            {
+                Console.WriteLine($"{name,-8} {patch.header.width}x{patch.header.height}");
             }
 
             var map_name = "E1M1";

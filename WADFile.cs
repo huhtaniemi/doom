@@ -702,6 +702,70 @@ namespace DOOM.WAD
             }
             return map_textures;
         }
+
+        public struct TextureFlat
+        {
+            readonly Size size = new( 64, 64 );
+            private byte[] flatdata;
+            private Palette palette;
+            public readonly Bitmap image;
+            public readonly byte[,,] image_array;
+
+            public TextureFlat(byte[] data, Palette palette)
+            {
+                this.flatdata = data;
+                this.palette = palette;
+                this.image = GetImage();
+                //pg.surfarray.array3d()
+                this.image_array = ConvertTo3DArray(this.image);
+            }
+
+            private readonly Bitmap GetImage()
+            {
+                Bitmap image = new(size.Width, size.Height);
+                for (int i = 0; i < flatdata.Length; i++)
+                {
+                    int ix = i % 64;
+                    int iy = i / 64;
+                    Color color = palette[flatdata[i]];
+                    image.SetPixel(ix, iy, color);
+                }
+                return image;
+            }
+
+            private readonly byte[,,] ConvertTo3DArray(Bitmap image)
+            {
+                var (width, height) = (image.Width, image.Height);
+                byte[,,] result = new byte[width, height, 3];
+                for (int x = 0; x < width; x++)
+                {
+                    for (int y = 0; y < height; y++)
+                    {
+                        Color pixel = image.GetPixel(x, y);
+                        result[x, y, 0] = pixel.R;
+                        result[x, y, 1] = pixel.G;
+                        result[x, y, 2] = pixel.B;
+                    }
+                }
+                return result;
+            }
+        }
+
+        public Dictionary<string, WADFile.TextureFlat> GetTexturesFlats(Palette palette)
+        {
+            var lump_idx_first = GetIndexByName(this.filelumps, "F_START") + 1;
+            var lump_idx_last = GetIndexByName(this.filelumps, "F_END");
+
+            Dictionary<string, WADFile.TextureFlat> flat_textures = [];
+            foreach (var idx in Enumerable.Range(lump_idx_first, lump_idx_last - lump_idx_first))
+            {
+                var lump = this.filelumps[idx];
+                var data = GetRefData<byte>(lump.filepos, (uint)lump.size);
+                flat_textures.Add(lump.name, new([..data], palette));
+            }
+            return flat_textures;
+        }
+
         // DEBUG
 
         public void TEST()
@@ -733,6 +797,8 @@ namespace DOOM.WAD
             {
                 //Console.WriteLine($"{name,-8} {patch.header.width}x{patch.header.height}");
             }
+
+            var tmp2 = GetTexturesFlats(this.GetPalette(0));
 
             var map_name = "E1M1";
             //*

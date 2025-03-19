@@ -286,6 +286,37 @@ namespace DOOM.WAD
             //public byte padding_post; // - unused
             public byte[] data;
         }
+
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct TextureHeader
+        {
+            public uint texture_count; // numtextures
+            //public uint[numtextures] texture_offset; // offset[numtextures]
+            //public TextureData[numtextures] mtexture[];
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct TextureData // maptexture
+        {
+            public helper.Sfn<helper.Sfnbyte8> name;
+            public uint flags; // masked
+            public ushort width;
+            public ushort height;
+            public uint column_dir; //  - unused
+            public ushort patch_count; // patchcount
+            // public mappatch[patchcount] patch_maps; // pathces
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct TexturePatch // mappatch
+        {
+            public short offset_x; // originx
+            public short offset_y; // originy
+            public ushort p_name_index; // patch
+            public ushort step_dir; // - unused
+            public ushort color_map; // - unused
+        }
     }
 
     public class WADFile : IDisposable
@@ -519,7 +550,7 @@ namespace DOOM.WAD
             }
 
             Color COLOR_KEY = Color.FromArgb(152, 0, 136);
-            public readonly Bitmap GetImage()
+            private readonly Bitmap GetImage()
             {
                 Bitmap image = new Bitmap(header.width, header.height);
                 using (Graphics g = Graphics.FromImage(image))
@@ -597,21 +628,97 @@ namespace DOOM.WAD
             return sprites;
         }
 
+
+        public struct Texture
+        {
+            public readonly TextureData tex_header;
+            public readonly List<TexturePatch> tex_patches;
+            public readonly Bitmap image;
+            public readonly byte[,,] image_array;
+
+            public Texture(TextureData tex_header, List<TexturePatch> tex_patches, List<WADFile.Patch> patches)
+            {
+                this.tex_header = tex_header;
+                this.tex_patches = tex_patches;
+                this.image = GetImage(patches);
+                //pg.surfarray.array3d()
+                this.image_array = ConvertTo3DArray(this.image);
+            }
+
+            Color COLOR_KEY = Color.FromArgb(152, 0, 136);
+            private readonly Bitmap GetImage(List<WADFile.Patch> patches)
+            {
+                Bitmap image = new(tex_header.width, tex_header.height);
+                using (Graphics g = Graphics.FromImage(image))
+                {
+                    g.Clear(COLOR_KEY);
+                }
+                image.MakeTransparent(COLOR_KEY);
+
+                foreach (var patchMap in tex_patches)
+                {
+                    var patch = patches[patchMap.p_name_index];
+                    using (Graphics g = Graphics.FromImage(image))
+                    {
+                        g.DrawImage(patch.image, patchMap.offset_x, patchMap.offset_y);
+                    }
+                }
+                return image;
+            }
+
+            private readonly byte[,,] ConvertTo3DArray(Bitmap image)
+            {
+                var (width, height) = (image.Width, image.Height);
+                byte[,,] result = new byte[width, height, 3];
+                for (int x = 0; x < width; x++)
+                {
+                    for (int y = 0; y < height; y++)
+                    {
+                        Color pixel = image.GetPixel(x, y);
+                        result[x, y, 0] = pixel.R;
+                        result[x, y, 1] = pixel.G;
+                        result[x, y, 2] = pixel.B;
+                    }
+                }
+                return result;
+            }
+        }
+
+        public Dictionary<string,WADFile.Texture> GetTextures(string name, List<WADFile.Patch> patches)
+        {
+            var lump_idx = GetIndexByName(this.filelumps, name);
+            var lump_offset = this.filelumps[lump_idx].filepos;
+            var header = GetRefData<TextureHeader>(lump_offset, (uint)Marshal.SizeOf<TextureHeader>())[0];
+            var texture_offsets = GetRefData<uint>(
+                (lump_offset + (uint)Marshal.SizeOf<TextureHeader>()), (uint)header.texture_count * 4);
+            Dictionary<string, Texture> map_textures = [];
+            foreach (var texture_offset in texture_offsets)
+            {
+                var offset = lump_offset + texture_offset;
+                var tex_map = GetRefData<TextureData>(offset, (uint)Marshal.SizeOf<TextureData>())[0];
+                var tex_patches = GetRefData<TexturePatch>(offset + (uint)Marshal.SizeOf<TextureData>(),
+                    tex_map.patch_count * (uint)Marshal.SizeOf<TexturePatch>());
+                map_textures.Add(tex_map.name, new(tex_map, [.. tex_patches], patches));
+            }
+            return map_textures;
+        }
         // DEBUG
 
         public void TEST()
         {
-            foreach (ref readonly var filelump in filelumps)
+            //foreach (ref readonly var filelump in filelumps)
             {
                 //Console.WriteLine($"{filelump.name,-8} - offset {filelump.filepos,-7} - size {filelump.size}");
             }
 
+            List<WADFile.Patch> patches = [];
             foreach (ref readonly var name in this.pnames)
             {
                 //Console.WriteLine($"{name,-8}");
                 try
                 {
                     var patch = GetPatch(name.ToString().ToUpper());
+                    patches.Add(patch);
                     //Console.WriteLine($"{name,-8} {patch.header.width}x{patch.header.height}");
                 }
                 catch (Exception e)
@@ -619,10 +726,12 @@ namespace DOOM.WAD
                     //Console.WriteLine(e.Message);
                 }
             }
+            var tmp = GetTextures("TEXTURE1", patches);
+            //var tmp = GetTextures("TEXTURE2", patches);
 
             foreach (var (name, patch) in GetSprites())
             {
-                Console.WriteLine($"{name,-8} {patch.header.width}x{patch.header.height}");
+                //Console.WriteLine($"{name,-8} {patch.header.width}x{patch.header.height}");
             }
 
             var map_name = "E1M1";

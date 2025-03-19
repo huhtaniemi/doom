@@ -257,6 +257,35 @@ namespace DOOM.WAD
             //public helper.Sfn<helper.Sfnbyte8>[count] names;
             public uint size { get => 8 * count; }
         }
+
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct PatchHeader
+        {
+            public ushort width;
+            public ushort height;
+            public short offset_left;
+            public short offset_top;
+            //uint [width x I] offset_column;
+        }
+
+        public struct PatchColumn
+        {
+            [StructLayout(LayoutKind.Sequential, Pack = 1)]
+            public struct Header
+            {
+                public byte top_delta;
+                public byte length;
+                //public byte padding_pre; // - unused
+                //byte [length x B] data;
+                //public byte padding_post; // - unused
+            }
+            public Header header;
+            //public byte padding_pre; // - unused
+            //byte [length x B] data;
+            //public byte padding_post; // - unused
+            public byte[] data;
+        }
     }
 
     public class WADFile : IDisposable
@@ -469,6 +498,86 @@ namespace DOOM.WAD
             return new(colors);
         }
 
+        public struct Patch
+        {
+            public readonly string names;
+            public readonly PatchHeader header;
+            private readonly List<PatchColumn> columns;
+            private readonly Palette palette;
+            private readonly Bitmap image;
+
+            public Patch(string name, PatchHeader header, List<PatchColumn> columns, Palette palette)
+            {
+                this.names = name;
+                this.header = header;
+                this.columns = columns;
+                this.palette = palette;
+                this.image = GetImage();
+            }
+
+            Color COLOR_KEY = Color.FromArgb(152, 0, 136);
+            public readonly Bitmap GetImage()
+            {
+                Bitmap image = new Bitmap(header.width, header.height);
+                using (Graphics g = Graphics.FromImage(image))
+                {
+                    g.Clear(COLOR_KEY);
+                }
+                image.MakeTransparent(COLOR_KEY);
+
+                int ix = 0;
+                foreach (var column in columns)
+                {
+                    if (column.header.top_delta == 0xFF)
+                    {
+                        ix += 1;
+                        continue;
+                    }
+                    for (int iy = 0; iy < column.header.length; iy++)
+                    {
+                        image.SetPixel(ix, iy + column.header.top_delta, palette[column.data[iy]]);
+                    }
+                }
+                return image;
+            }
+        }
+
+        public WADFile.Patch GetPatch(string name)
+        {
+            var lump_idx = GetIndexByName(this.filelumps, name);
+            if (lump_idx < 0)
+                throw new Exception($"unable to locate path {name,-8} in lumps directory!");
+            var filelump = this.filelumps[lump_idx];
+            var patch_offset = filelump.filepos;
+            var patch_header = GetRefData<PatchHeader>(patch_offset, (uint)Marshal.SizeOf<PatchHeader>())[0];
+            var column_offsets = GetRefData<uint>(
+                (patch_offset + (uint)Marshal.SizeOf<PatchHeader>()), (uint)patch_header.width * 4);
+
+            List<PatchColumn> patch_columns = [];
+            foreach (var column_offset in column_offsets)
+            {
+                var offset = patch_offset + column_offset;
+                while (true)
+                {
+                    var column_header = GetRefData<PatchColumn.Header>(offset, (uint)Marshal.SizeOf<PatchColumn.Header>())[0];
+                    if (column_header.top_delta == 0xFF)
+                    {
+                        patch_columns.Add(new PatchColumn()
+                        {
+                            header = new PatchColumn.Header() { top_delta = 0xFF }
+                        });
+                        break;
+                    }
+                    patch_columns.Add(new PatchColumn()
+                    {
+                        header = column_header,
+                        data = [.. GetRefData<byte>(offset + 2 + 1, (uint)column_header.length)]
+                    });
+                    offset += 4 + (uint)column_header.length;
+                }
+            }
+            return new(name, patch_header, patch_columns, this.GetPalette(0));
+        }
         // DEBUG
 
         public void TEST()
@@ -481,6 +590,15 @@ namespace DOOM.WAD
             foreach (ref readonly var name in this.pnames)
             {
                 //Console.WriteLine($"{name,-8}");
+                try
+                {
+                    var patch = GetPatch(name.ToString().ToUpper());
+                    Console.WriteLine($"{name,-8} {patch.header.width}x{patch.header.height}");
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
             }
 
             var map_name = "E1M1";

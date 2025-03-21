@@ -60,26 +60,33 @@ namespace DOOM
 
         public void DrawSolidWallRange(MapData map, Graphics g, int x1, int x2)
         {
+            // aliases
             var seg = this.seg;
             var front_sector = map.seg_front_sector(seg);
             var line = map.seg_linedef(seg);
             var side = map.linedef_front_sidedef(map.seg_linedef(seg));
+
             var renderer = view_renderer;
+            var framebuffer = renderer.framebuffer;
             var upper_clip = this.upper_clip;
             var lower_clip = this.lower_clip;
 
-            var wall_texture = map.linedef_front_sidedef(map.seg_linedef(seg)).tex_middle;
-            var ceil_texture = front_sector.tex_ceiling;
-            var floor_texture = front_sector.tex_floor;
+            // textures
+            var wall_texture_id = map.linedef_front_sidedef(map.seg_linedef(seg)).tex_middle;
+            var ceil_texture_id = front_sector.tex_ceiling;
+            var floor_texture_id = front_sector.tex_floor;
             var light_level = front_sector.light_level;
 
+            // relative plane heights of front sector
             float world_front_z1 = front_sector.height_ceiling - player.height;
             float world_front_z2 = front_sector.height_floor - player.height;
 
+            // check which parts must be rendered
             bool b_draw_wall = side.tex_middle != "-";
             bool b_draw_ceil = world_front_z1 > 0;
             bool b_draw_floor = world_front_z2 < 0;
 
+            // scaling factors of the left and right edges of the wall range
             float rw_normal_angle = map.seg_angle(seg) + 90;
             float offset_angle = rw_normal_angle - this.rw_angle1;
 
@@ -88,6 +95,13 @@ namespace DOOM
             float rw_distance = hypotenuse * MathF.Cos(MathF.PI / 180f * offset_angle);
 
             float rw_scale1 = ScaleFromGlobalAngle(x1, rw_normal_angle, rw_distance);
+
+            //# fix the stretched line bug?
+            if (MathF.Abs(offset_angle % 360 - 90) < 1) // fix mod
+            {
+                rw_scale1 *= 0.01f;
+            }
+
             float rw_scale_step = 0;
             if (x1 < x2)
             {
@@ -95,12 +109,30 @@ namespace DOOM
                 rw_scale_step = (scale2 - rw_scale1) / (x2 - x1);
             }
 
+            // -------------------------------------------------------------------------
+            var wall_texture = renderer.textures[wall_texture_id];
+            float middle_tex_alt = world_front_z1;
+            if ((line.flags & (ushort)linedef.FLAGS.ML_DONTPEGBOTTOM) != 0)
+            {
+                float v_top = front_sector.height_floor + wall_texture.tex_header.height;
+                middle_tex_alt = v_top - player.height;
+            }
+            middle_tex_alt += side.offset_y;
+
+            float rw_offset = hypotenuse * MathF.Sin(MathF.PI / 180 * offset_angle);
+            rw_offset += seg.offset + side.offset_x;
+
+            float rw_center_angle = rw_normal_angle - player.angle;
+            // -------------------------------------------------------------------------
+
+            // determine where on the screen the wall is drawn
             float wall_y1 = BSP.H_HEIGHT - world_front_z1 * rw_scale1;
             float wall_y1_step = -rw_scale_step * world_front_z1;
 
             float wall_y2 = BSP.H_HEIGHT - world_front_z2 * rw_scale1;
             float wall_y2_step = -rw_scale_step * world_front_z2;
 
+            // now the rendering is carried out
             for (int x = x1; x <= x2; x++)
             {
                 float draw_wall_y1 = wall_y1 - 1;
@@ -110,22 +142,34 @@ namespace DOOM
                 {
                     int cy1 = upper_clip[x] + 1;
                     int cy2 = (int)MathF.Min(draw_wall_y1 - 1, lower_clip[x] - 1);
-                    renderer.DrawVLine(g, x, cy1, cy2, ceil_texture, light_level);
+                    renderer.DrawVLine(g, x, cy1, cy2, ceil_texture_id, light_level);
                 }
 
                 if (b_draw_wall)
                 {
                     int wy1 = (int)MathF.Max(draw_wall_y1, upper_clip[x] + 1);
                     int wy2 = (int)MathF.Min(draw_wall_y2, lower_clip[x] - 1);
-                    renderer.DrawVLine(g, x, wy1, wy2, wall_texture, light_level);
+                    //renderer.DrawVLine(g, x, wy1, wy2, wall_texture_id, light_level);
+                    // -------------------------------------------------------------------------
+                    if (wy1 < wy2)
+                    {
+                        float angle = rw_center_angle - x_to_angle[x];
+                        float texture_column = rw_distance * MathF.Tan(MathF.PI / 180 * angle) - rw_offset;
+                        float inv_scale = 1.0f / rw_scale1;
+                        renderer.DrawWallCol(wall_texture.image, texture_column, x, wy1, wy2, middle_tex_alt, inv_scale, light_level);
+                    }
+                    // -------------------------------------------------------------------------
                 }
 
                 if (b_draw_floor)
                 {
                     int fy1 = (int)MathF.Max(draw_wall_y2 + 1, upper_clip[x] + 1);
                     int fy2 = lower_clip[x] - 1;
-                    renderer.DrawVLine(g, x, fy1, fy2, floor_texture, light_level);
+                    renderer.DrawVLine(g, x, fy1, fy2, floor_texture_id, light_level);
                 }
+                // -------------------------------------------------------------------------
+                rw_scale1 += rw_scale_step;
+                // -------------------------------------------------------------------------
 
                 wall_y1 += wall_y1_step;
                 wall_y2 += wall_y2_step;
@@ -368,12 +412,14 @@ namespace DOOM
             var back_sector = map.seg_back_sector(segment);
             var front_sector = map.seg_front_sector(segment);
 
+            // handle solid walls
             if (back_sector == null)
             {
                 ClipSolidWalls(map, g, x1, x2, ref bsp_is_traverse_bsp);
                 return;
             }
 
+            // wall with window
             if (front_sector.height_ceiling != back_sector?.height_ceiling ||
                 front_sector.height_floor != back_sector?.height_floor)
             {
@@ -381,6 +427,9 @@ namespace DOOM
                 return;
             }
 
+            // reject empty lines used for triggers and special events.
+            // identical floor and ceiling on both sides, identical
+            // light levels on both sides, and no middle texture.
             if (back_sector?.tex_ceiling == front_sector.tex_ceiling &&
                 back_sector?.tex_floor == front_sector.tex_floor &&
                 back_sector?.light_level == front_sector.light_level &&
@@ -390,6 +439,7 @@ namespace DOOM
                 return;
             }
 
+            // borders with different light levels and textures
             ClipPortalWalls(map, g, x1, x2);
         }
     }

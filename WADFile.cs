@@ -387,6 +387,11 @@ namespace DOOM.WAD
         protected ReadOnlySpan<Sfn<Sfnbyte8>> pnames
             => GetRefData<Sfn<Sfnbyte8>>(pnlump.filepos + 4, pnlump.size - 4);
 
+        protected List<WADFile.Patch> patches
+            => pnames.ToArray()
+                .Where(name => GetIndexByName(filelumps, name.ToString().ToUpper()) != -1)
+                .Select(name => GetPatch(name.ToString().ToUpper()))
+                .ToList();
 
         // properties
 
@@ -684,8 +689,9 @@ namespace DOOM.WAD
             }
         }
 
-        public Dictionary<string,WADFile.Texture> GetTextures(string name, List<WADFile.Patch> patches)
+        public Dictionary<string,WADFile.Texture> GetTextures(string name = "TEXTURE1")
         {
+            var patches = this.patches;
             var lump_idx = GetIndexByName(this.filelumps, name);
             var lump_offset = this.filelumps[lump_idx].filepos;
             var header = GetRefData<TextureHeader>(lump_offset, (uint)Marshal.SizeOf<TextureHeader>())[0];
@@ -790,7 +796,7 @@ namespace DOOM.WAD
                     //Console.WriteLine(e.Message);
                 }
             }
-            var tmp = GetTextures("TEXTURE1", patches);
+            var tmp = GetTextures("TEXTURE1");
             //var tmp = GetTextures("TEXTURE2", patches);
 
             foreach (var (name, patch) in GetSprites())

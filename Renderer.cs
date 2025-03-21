@@ -127,7 +127,7 @@ namespace DOOM
 
             view_renderer = new(framebuffer,
                 (g, pen, x, y1, y2) => DrawLine(g, pen, x, y1, y2)
-                , new()
+                , [], new(), player
             );
             seg_handler = new(view_renderer, player);
             bsp = new(seg_handler);
@@ -168,6 +168,7 @@ namespace DOOM
             wadloader = WADLoader.Open("DOOM1.WAD", buffered: true);
             //wadloader.TEST();
 
+            view_renderer.textures = wadloader.GetTextures("TEXTURE1");
             view_renderer.palette = wadloader.GetPalette(0);
             view_renderer.sprites = wadloader.GetSprites();
 

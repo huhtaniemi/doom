@@ -1,13 +1,15 @@
-using DOOM.WAD;
 using System;
+using DOOM.WAD;
 using static DOOM.WAD.WADFile;
 
 namespace DOOM
 {
-    public class ViewRenderer(Action<Graphics, Pen, int, int, int> fn, Palette palette)
+    public class ViewRenderer(byte[] framebuffer, Action<Graphics, Pen, int, int, int> fn,
+        Palette palette)
     {
         public Action<Graphics, Pen, int, int, int> DrawLine { get; } = fn;
 
+        public byte[] framebuffer = framebuffer;
         private readonly Dictionary<string, Color> colors = [];
         //private readonly
             public Palette palette = palette;
@@ -40,11 +42,15 @@ namespace DOOM
         {
             if (y1 < y2)
             {
-                using (Pen pen = new(GetColor(tex, light)))
+                var c = GetColor(tex, light);
+                DrawColumn(x, y1, y2, c);
+                /*
+                using (var pen = new Pen(c))
                 {
-                    //DrawLine(pen, x, y1, y2);
-                    g.DrawLine(pen, x, y1, x, y2);
+                    DrawLine(g, pen, x, y1, y2);
+                    //g.DrawLine(pen, x, y1, x, y2);
                 }
+                */
             }
         }
 

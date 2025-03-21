@@ -8,6 +8,8 @@ using static DOOM.WAD.WADFileTypes;
 
 using ModernGL;
 using static ModernGL.glContext;
+using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
 
 //glContext ctx;
 
@@ -95,6 +97,9 @@ namespace DOOM
         private int fps;
         private int frameCount;
         private Point lastMousePosition;
+        // [B, G, R, B, G, R, B, G, R, ...]
+        private byte[] framebuffer;
+        Bitmap framebuffer_bitmap;
 
         public Renderer()
         {
@@ -117,7 +122,13 @@ namespace DOOM
             KeyDown += (sender, e) => Player.Keyboard.KeyDown(e.KeyCode);
             KeyUp += (sender, e) => Player.Keyboard.KeyUp(e.KeyCode);
 
-            view_renderer = new((g, pen, x, y1, y2) => DrawLineX(g, pen, x, y1, y2), new());
+            framebuffer = new byte[Width * Height * 3];
+            framebuffer_bitmap = new Bitmap(Width, Height);
+
+            view_renderer = new(framebuffer,
+                (g, pen, x, y1, y2) => DrawLine(g, pen, x, y1, y2)
+                , new()
+            );
             seg_handler = new(view_renderer, player);
             bsp = new(seg_handler);
         }
@@ -227,13 +238,44 @@ namespace DOOM
 
             seg_handler.Update();
 
+            // draw world
+            UpdateBitmap(g);
+
             bsp.is_traverse_bsp = true;
             bsp.RenderBspNode(map, player, g, bsp.root_node_id, (seg, id) => DrawSeg(g, seg, id), (bbox) => DrawBBox(g, bbox, Color.Aquamarine));
 
+            g.DrawImage(framebuffer_bitmap, 0, 0, Width, Height);
+
+            // mini map
             DrawLinedefs(g);
             DrawPlayerPos(g);
             //DrawPalette(g,0);
+
+            // hud
             view_renderer.DrawSprite(g);
+        }
+
+        public void UpdateBitmap(Graphics g)
+        {
+            BitmapData bmpData = framebuffer_bitmap.LockBits(
+                new(0, 0, Width, Height), ImageLockMode.WriteOnly, PixelFormat.Format24bppRgb);
+
+            int stride = bmpData.Stride;
+            var ptr = bmpData.Scan0;
+            if (stride == Width * 3)
+            {
+                Marshal.Copy(framebuffer, 0, ptr, framebuffer.Length);
+            }
+            else
+            {
+                for (int y = 0; y < Width; y++)
+                {
+                    int framebufferOffset = y * Width * 3;
+                    int bitmapOffset = y * stride;
+                    Marshal.Copy(framebuffer, framebufferOffset, ptr + bitmapOffset, Width * 3);
+                }
+            }
+            framebuffer_bitmap.UnlockBits(bmpData);
         }
 
         public void DrawSeg(Graphics g, seg seg, int id)
@@ -313,8 +355,9 @@ namespace DOOM
             g.DrawLine(Pens.Yellow, px, py, x2, y2);
         }
 
-        public void DrawLineX(Graphics g, Pen pen, int x, int y1, int y2)
+        public void DrawLine(Graphics _, Pen pen, int x, int y1, int y2)
         {
+            using var g = Graphics.FromImage(framebuffer_bitmap);
             g.DrawLine(pen, x, y1, x, y2);
         }
 

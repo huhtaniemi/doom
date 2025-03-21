@@ -18,7 +18,10 @@ namespace DOOM
         public HashSet<int> screen_range = [];
         public List<int> upper_clip = [];
         public List<int> lower_clip = [];
-        public readonly List<float> x_to_angle;
+        public static List<float> x_to_angle { get; } = [.. Enumerable
+            .Range(0, (int)BSP.WIDTH + 1)
+            .Select(i => MathF.Atan((BSP.H_WIDTH - i) / BSP.SCREEN_DIST) * (180 / MathF.PI))
+        ];
 
         public SegHandler(ViewRenderer view_renderer, Player player)
         {
@@ -30,10 +33,6 @@ namespace DOOM
             //{
             //    this.x_to_angle.Add(MathF.Atan((BSP.H_WIDTH - i) / BSP.SCREEN_DIST) * (180 / MathF.PI));
             //}
-            this.x_to_angle = [.. Enumerable
-                .Range(0, (int)BSP.WIDTH + 1)
-                .Select(i => MathF.Atan((BSP.H_WIDTH - i) / BSP.SCREEN_DIST) * (180 / MathF.PI))
-            ];
         }
 
         public void Update()

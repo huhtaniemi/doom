@@ -168,8 +168,12 @@ namespace DOOM
             wadloader = WADLoader.Open("DOOM1.WAD", buffered: true);
             //wadloader.TEST();
 
-            view_renderer.textures = wadloader.GetTextures("TEXTURE1");
             view_renderer.palette = wadloader.GetPalette(0);
+            var texts1 = wadloader.GetTextures("TEXTURE1");
+            var textsF = wadloader.GetTexturesFlats(view_renderer.palette);
+            view_renderer.textures = texts1.Concat(textsF)
+                //.ToDictionary();
+                .GroupBy(pair => pair.Key).ToDictionary(g => g.Key, g => g.First().Value);
             view_renderer.sprites = wadloader.GetSprites();
 
             bsp.root_node_id = (ushort)(map.nodes.Length - 1);

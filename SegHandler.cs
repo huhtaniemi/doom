@@ -114,7 +114,7 @@ namespace DOOM
             float middle_tex_alt = world_front_z1;
             if ((line.flags & (ushort)linedef.FLAGS.ML_DONTPEGBOTTOM) != 0)
             {
-                float v_top = front_sector.height_floor + wall_texture.tex_header.height;
+                float v_top = front_sector.height_floor + wall_texture.height;
                 middle_tex_alt = v_top - player.height;
             }
             middle_tex_alt += side.offset_y;

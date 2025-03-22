@@ -636,48 +636,61 @@ namespace DOOM.WAD
 
         public struct Texture
         {
-            public readonly TextureData tex_header;
-            public readonly List<TexturePatch> tex_patches;
+            public ushort width;
+            public ushort height;
             public readonly Bitmap image;
             public readonly byte[,,] image_array;
 
             public Texture(TextureData tex_header, List<TexturePatch> tex_patches, List<WADFile.Patch> patches)
             {
-                this.tex_header = tex_header;
-                this.tex_patches = tex_patches;
-                this.image = GetImage(patches);
-                //pg.surfarray.array3d()
-                this.image_array = ConvertTo3DArray(this.image);
-            }
-
-            Color COLOR_KEY = Color.FromArgb(152, 0, 136);
-            private readonly Bitmap GetImage(List<WADFile.Patch> patches)
-            {
-                Bitmap image = new(tex_header.width, tex_header.height);
-                using (Graphics g = Graphics.FromImage(image))
+                Color COLOR_KEY = Color.FromArgb(152, 0, 136); //Color.LightGray?
+                Bitmap GetImage(Bitmap image)
                 {
-                    g.Clear(COLOR_KEY);
-                }
-                image.MakeTransparent(COLOR_KEY);
-
-                foreach (var patchMap in tex_patches)
-                {
-                    var patch = patches[patchMap.p_name_index];
+                    //using var g = Graphics.FromImage(image);
                     using (Graphics g = Graphics.FromImage(image))
                     {
-                        g.DrawImage(patch.image, patchMap.offset_x, patchMap.offset_y);
+                        g.Clear(COLOR_KEY);
                     }
+                    //image.MakeTransparent(COLOR_KEY);
+                    foreach (var patchMap in tex_patches)
+                    {
+                        var patch = patches[patchMap.p_name_index];
+                        using (Graphics g = Graphics.FromImage(image))
+                        {
+                            g.DrawImage(patch.image, patchMap.offset_x, patchMap.offset_y);
+                        }
+                    }
+                    //image = new Bitmap(tex_header.width, tex_header.height, tex_header.width*3,PixelFormat.Format32bppArgb,data);
+                    return image;
                 }
-                return image;
+                (width, height) = (tex_header.width, tex_header.height);
+                this.image = GetImage(new Bitmap(width, height)); //PixelFormat.Format32bppArgb
+                this.image_array = ConvertTo3DArray();
             }
 
-            private readonly byte[,,] ConvertTo3DArray(Bitmap image)
+            public Texture(byte[] flatdata, Palette palette)
             {
-                var (width, height) = (image.Width, image.Height);
-                byte[,,] result = new byte[width, height, 3];
-                for (int x = 0; x < width; x++)
+                Bitmap GetImage(Bitmap image)
                 {
-                    for (int y = 0; y < height; y++)
+                    var (w, h) = (image.Width, image.Height);
+                    for (int i = 0; i < flatdata.Length; i++)
+                    {
+                        image.SetPixel(i % w, i / h, palette[flatdata[i]]);
+                    }
+                    return image;
+                }
+                (width, height) = (64, 64);
+                this.image = GetImage(new Bitmap(width, height));
+                this.image_array = ConvertTo3DArray();
+            }
+
+            private readonly byte[,,] ConvertTo3DArray()
+            {
+                var (w, h) = (image.Width, image.Height);
+                byte[,,] result = new byte[w, h, 3];
+                for (int x = 0; x < w; x++)
+                {
+                    for (int y = 0; y < h; y++)
                     {
                         Color pixel = image.GetPixel(x, y);
                         result[x, y, 0] = pixel.R;
@@ -722,19 +735,16 @@ namespace DOOM.WAD
                 this.flatdata = data;
                 this.palette = palette;
                 this.image = GetImage();
-                //pg.surfarray.array3d()
                 this.image_array = ConvertTo3DArray(this.image);
             }
 
             private readonly Bitmap GetImage()
             {
-                Bitmap image = new(size.Width, size.Height);
+                var (w, h) = (size.Width, size.Height);
+                var image = new Bitmap(w, h);
                 for (int i = 0; i < flatdata.Length; i++)
                 {
-                    int ix = i % 64;
-                    int iy = i / 64;
-                    Color color = palette[flatdata[i]];
-                    image.SetPixel(ix, iy, color);
+                    image.SetPixel(i % w, i / h, palette[flatdata[i]]);
                 }
                 return image;
             }
@@ -757,12 +767,12 @@ namespace DOOM.WAD
             }
         }
 
-        public Dictionary<string, WADFile.TextureFlat> GetTexturesFlats(Palette palette)
+        public Dictionary<string, WADFile.Texture> GetTexturesFlats(Palette palette)
         {
             var lump_idx_first = GetIndexByName(this.filelumps, "F_START") + 1;
             var lump_idx_last = GetIndexByName(this.filelumps, "F_END");
 
-            Dictionary<string, WADFile.TextureFlat> flat_textures = [];
+            Dictionary<string, WADFile.Texture> flat_textures = [];
             foreach (var idx in Enumerable.Range(lump_idx_first, lump_idx_last - lump_idx_first))
             {
                 var lump = this.filelumps[idx];

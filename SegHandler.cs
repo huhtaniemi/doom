@@ -96,11 +96,10 @@ namespace DOOM
 
             float rw_scale1 = ScaleFromGlobalAngle(x1, rw_normal_angle, rw_distance);
 
+            var tmp = ((offset_angle % 360f) + 360f) % 360f; // (offset_angle % 360)
             //# fix the stretched line bug?
-            if (MathF.Abs(offset_angle % 360 - 90) < 1) // fix mod
-            {
+            if (MathF.Abs(tmp - 90) < 1)
                 rw_scale1 *= 0.01f;
-            }
 
             float rw_scale_step = 0;
             if (x1 < x2)
@@ -142,7 +141,8 @@ namespace DOOM
                 {
                     int cy1 = upper_clip[x] + 1;
                     int cy2 = (int)MathF.Min(draw_wall_y1 - 1, lower_clip[x] - 1);
-                    renderer.DrawVLine(g, x, cy1, cy2, ceil_texture_id, light_level);
+                    //renderer.DrawVLine(g, x, cy1, cy2, ceil_texture_id, light_level);
+                    renderer.DrawFlat(ceil_texture_id, light_level, x, cy1, cy2, world_front_z1);
                 }
 
                 if (b_draw_wall)
@@ -165,7 +165,8 @@ namespace DOOM
                 {
                     int fy1 = (int)MathF.Max(draw_wall_y2 + 1, upper_clip[x] + 1);
                     int fy2 = lower_clip[x] - 1;
-                    renderer.DrawVLine(g, x, fy1, fy2, floor_texture_id, light_level);
+                    //renderer.DrawVLine(g, x, fy1, fy2, floor_texture_id, light_level);
+                    renderer.DrawFlat(floor_texture_id, light_level, x, fy1, fy2, world_front_z2);
                 }
                 // -------------------------------------------------------------------------
                 rw_scale1 += rw_scale_step;
@@ -178,35 +179,55 @@ namespace DOOM
 
         public void DrawPortalWallRange(MapData map, Graphics g, int x1, int x2)
         {
+            // aliases
             var seg = this.seg;
             var front_sector = map.seg_front_sector(seg);
             var back_sector = map.seg_back_sector(seg);
             var line = map.seg_linedef(seg);
             var side = map.linedef_front_sidedef(map.seg_linedef(seg));
+
             var renderer = view_renderer;
+            var framebuffer = renderer.framebuffer;
             var upper_clip = this.upper_clip;
             var lower_clip = this.lower_clip;
 
-            var upper_wall_texture = side.tex_upper;
-            var lower_wall_texture = side.tex_lower;
+            //  textures
+            var upper_wall_texture_id = side.tex_upper;
+            var lower_wall_texture_id = side.tex_lower;
             var tex_ceil_id = front_sector.tex_ceiling;
             var tex_floor_id = front_sector.tex_floor;
             var light_level = front_sector.light_level;
 
+            // relative plane heights of front sector
             float world_front_z1 = front_sector.height_ceiling - player.height;
             float world_back_z1 = (float)(back_sector?.height_ceiling - player.height);
-            float world_front_z2 = front_sector.height_floor- player.height;
+            float world_front_z2 = front_sector.height_floor - player.height;
             float world_back_z2 = (float)(back_sector?.height_floor - player.height);
 
-            bool b_draw_upper_wall = side.tex_upper != "-" && world_back_z1 < world_front_z1;
-            bool b_draw_ceil = world_front_z1 >= 0;
+            // sky hack?
+            if (front_sector.tex_ceiling == back_sector?.tex_ceiling && front_sector.tex_ceiling == renderer.skyId)
+                world_front_z1 = world_back_z1;
 
-            bool b_draw_lower_wall = side.tex_lower != "-" && world_back_z2 > world_front_z2;
+            // check which parts must be rendered
+            bool b_draw_upper_wall = (
+                world_front_z1 != world_back_z1 ||
+                front_sector.light_level != back_sector?.light_level ||
+                front_sector.tex_ceiling != back_sector?.tex_ceiling
+            ) && upper_wall_texture_id != "-" && world_back_z1 < world_front_z1;
+            bool b_draw_ceil = world_front_z1 >= 0 || front_sector.tex_ceiling == renderer.skyId;
+
+            bool b_draw_lower_wall = (
+                world_front_z2 != world_back_z2 ||
+                front_sector.tex_floor != back_sector?.tex_floor ||
+                front_sector.light_level != back_sector?.light_level
+            ) && lower_wall_texture_id != "-" && world_back_z2 > world_front_z2;
             bool b_draw_floor = world_front_z2 <= 0;
 
+            // if nothing must be rendered, we can skip this seg
             if (!b_draw_upper_wall && !b_draw_ceil && !b_draw_lower_wall && !b_draw_floor)
                 return;
 
+            // calculate the scaling factors of the left and right edges of the wall range
             float rw_normal_angle = map.seg_angle(seg) + 90;
             float offset_angle = rw_normal_angle - this.rw_angle1;
 
@@ -214,39 +235,110 @@ namespace DOOM
                 new Vector2(map.seg_start_vertex(seg).pos_x, map.seg_start_vertex(seg).pos_y));
             float rw_distance = hypotenuse * MathF.Cos(MathF.PI / 180f * offset_angle);
 
-            float rw_scale = ScaleFromGlobalAngle(x1, rw_normal_angle, rw_distance);
+            float rw_scale1 = ScaleFromGlobalAngle(x1, rw_normal_angle, rw_distance);
             float rw_scale_step = 0;
             if (x2 > x1)
             {
                 float scale2 = ScaleFromGlobalAngle(x2, rw_normal_angle, rw_distance);
-                rw_scale_step = (scale2 - rw_scale) / (x2 - x1);
+                rw_scale_step = (scale2 - rw_scale1) / (x2 - x1);
             }
 
-            float wall_y1 = BSP.H_HEIGHT - world_front_z1 * rw_scale;
+            // ----------------------------------------------------------------------------
+            // determine how the wall textures are vertically aligned
+            float upper_tex_alt = 0;
+            if (b_draw_upper_wall)
+            {
+                var upper_wall_texture = renderer.textures[upper_wall_texture_id];
+                if ((line.flags & (ushort)linedef.FLAGS.ML_DONTPEGTOP) != 0)
+                {
+                    upper_tex_alt = world_front_z1;
+                }
+                else
+                {
+                    var v_top = (int)(back_sector?.height_ceiling + upper_wall_texture.height);
+                    upper_tex_alt = v_top - player.height;
+                }
+                upper_tex_alt += side.offset_y;
+            }
+
+            float lower_tex_alt = 0;
+            if (b_draw_lower_wall)
+            {
+                var lower_wall_texture = renderer.textures[lower_wall_texture_id];
+                if ((line.flags & (ushort)linedef.FLAGS.ML_DONTPEGBOTTOM) != 0)
+                {
+                    lower_tex_alt = world_front_z1;
+                }
+                else
+                {
+                    lower_tex_alt = world_back_z2;
+                }
+                lower_tex_alt += side.offset_y;
+            }
+            // ----------------------------------------------------------------------------
+
+            // determine how the wall textures are horizontally aligned
+            float rw_offset = 0;
+            float rw_center_angle = 0;
+            if (b_draw_upper_wall || b_draw_lower_wall)
+            {
+                rw_offset = hypotenuse * MathF.Sin(MathF.PI / 180 * offset_angle);
+                rw_offset += seg.offset + side.offset_x;
+                rw_center_angle = rw_normal_angle - player.angle;
+            }
+
+            // the y positions of the top / bottom edges of the wall on the screen
+            float wall_y1 = BSP.H_HEIGHT - world_front_z1 * rw_scale1;
             float wall_y1_step = -rw_scale_step * world_front_z1;
-            float wall_y2 = BSP.H_HEIGHT - world_front_z2 * rw_scale;
+            float wall_y2 = BSP.H_HEIGHT - world_front_z2 * rw_scale1;
             float wall_y2_step = -rw_scale_step * world_front_z2;
 
-            float portal_y1 = wall_y2;
-            float portal_y1_step = wall_y2_step;
-            if (b_draw_upper_wall && world_back_z1 > world_front_z2)
+            // the y position of the top edge of the portal
+            float portal_y1 = 0;
+            float portal_y1_step = 0;
+            if (b_draw_upper_wall)
             {
-                portal_y1 = BSP.H_HEIGHT - world_back_z1 * rw_scale;
-                portal_y1_step = -rw_scale_step * world_back_z1;
+                if (world_back_z1 > world_front_z2)
+                {
+                    portal_y1 = BSP.H_HEIGHT - world_back_z1 * rw_scale1;
+                    portal_y1_step = -rw_scale_step * world_back_z1;
+                }
+                else
+                {
+                    portal_y1 = wall_y2;
+                    portal_y1_step = wall_y2_step;
+                }
+            }
+            float portal_y2 = 0;
+            float portal_y2_step = 0;
+            if (b_draw_lower_wall)
+            {
+                if (world_back_z2 < world_front_z1)
+                {
+                    portal_y2 = BSP.H_HEIGHT - world_back_z2 * rw_scale1;
+                    portal_y2_step = -rw_scale_step * world_back_z2;
+                }
+                else
+                {
+                    portal_y2 = wall_y1;
+                    portal_y2_step = wall_y1_step;
+                }
             }
 
-            float portal_y2 = wall_y1;
-            float portal_y2_step = wall_y1_step;
-            if (b_draw_lower_wall && world_back_z2 < world_front_z1)
-            {
-                portal_y2 = BSP.H_HEIGHT - world_back_z2 * rw_scale;
-                portal_y2_step = -rw_scale_step * world_back_z2;
-            }
-
+            // now the rendering is carried out
             for (int x = x1; x <= x2; x++)
             {
                 float draw_wall_y1 = wall_y1 - 1;
                 float draw_wall_y2 = wall_y2;
+
+                float texture_column = 0;
+                float inv_scale = 0;
+                if (b_draw_upper_wall || b_draw_lower_wall)
+                {
+                    float angle = rw_center_angle - x_to_angle[x];
+                    texture_column = rw_distance * MathF.Tan(MathF.PI / 180 * angle) - rw_offset;
+                    inv_scale = 1.0f / rw_scale1;
+                }
 
                 if (b_draw_upper_wall)
                 {
@@ -257,12 +349,15 @@ namespace DOOM
                     {
                         int cy1 = upper_clip[x] + 1;
                         int cy2 = (int)MathF.Min(draw_wall_y1 - 1, lower_clip[x] - 1);
-                        renderer.DrawVLine(g, x, cy1, cy2, tex_ceil_id, light_level);
+                        //renderer.DrawVLine(g, x, cy1, cy2, tex_ceil_id, light_level);
+                        renderer.DrawFlat(tex_ceil_id, light_level, x, cy1, cy2, world_front_z1);
                     }
 
                     int wy1 = (int)MathF.Max(draw_upper_wall_y1, upper_clip[x] + 1);
                     int wy2 = (int)MathF.Min(draw_upper_wall_y2, lower_clip[x] - 1);
-                    renderer.DrawVLine(g, x, wy1, wy2, upper_wall_texture, light_level);
+                    var upper_wall_texture = renderer.textures[upper_wall_texture_id];
+                    //renderer.DrawVLine(g, x, wy1, wy2, upper_wall_texture_id, light_level);
+                    renderer.DrawWallCol(upper_wall_texture.image, texture_column, x, wy1, wy2, upper_tex_alt, inv_scale, light_level);
 
                     if (upper_clip[x] < wy2)
                         upper_clip[x] = wy2;
@@ -274,7 +369,8 @@ namespace DOOM
                 {
                     int cy1 = upper_clip[x] + 1;
                     int cy2 = (int)MathF.Min(draw_wall_y1 - 1, lower_clip[x] - 1);
-                    renderer.DrawVLine(g, x, cy1, cy2, tex_ceil_id, light_level);
+                    //renderer.DrawVLine(g, x, cy1, cy2, tex_ceil_id, light_level);
+                    renderer.DrawFlat(tex_ceil_id, light_level, x, cy1, cy2, world_front_z1);
 
                     if (upper_clip[x] < cy2)
                         upper_clip[x] = cy2;
@@ -286,7 +382,8 @@ namespace DOOM
                     {
                         int fy1 = (int)MathF.Max(draw_wall_y2 + 1, upper_clip[x] + 1);
                         int fy2 = lower_clip[x] - 1;
-                        renderer.DrawVLine(g, x, fy1, fy2, tex_floor_id, light_level);
+                        //renderer.DrawVLine(g, x, fy1, fy2, tex_floor_id, light_level);
+                        renderer.DrawFlat(tex_floor_id, light_level, x, fy1, fy2, world_front_z2);
                     }
 
                     float draw_lower_wall_y1 = portal_y2 - 1;
@@ -294,7 +391,9 @@ namespace DOOM
 
                     int wy1 = (int)MathF.Max(draw_lower_wall_y1, upper_clip[x] + 1);
                     int wy2 = (int)MathF.Min(draw_lower_wall_y2, lower_clip[x] - 1);
-                    renderer.DrawVLine(g, x, wy1, wy2, lower_wall_texture, light_level);
+                    var lower_wall_texture = renderer.textures[lower_wall_texture_id];
+                    //renderer.DrawVLine(g, x, wy1, wy2, lower_wall_texture_id, light_level);
+                    renderer.DrawWallCol(lower_wall_texture.image, texture_column, x, wy1, wy2, lower_tex_alt, inv_scale, light_level);
 
                     if (lower_clip[x] > wy1)
                         lower_clip[x] = wy1;
@@ -306,12 +405,14 @@ namespace DOOM
                 {
                     int fy1 = (int)MathF.Max(draw_wall_y2 + 1, upper_clip[x] + 1);
                     int fy2 = lower_clip[x] - 1;
-                    renderer.DrawVLine(g, x, fy1, fy2, tex_floor_id, light_level);
+                    //renderer.DrawVLine(g, x, fy1, fy2, tex_floor_id, light_level);
+                    renderer.DrawFlat(tex_floor_id, light_level, x, fy1, fy2, world_front_z2);
 
                     if (lower_clip[x] > draw_wall_y2 + 1)
                         lower_clip[x] = fy1;
                 }
 
+                rw_scale1 += rw_scale_step;
                 wall_y1 += wall_y1_step;
                 wall_y2 += wall_y2_step;
             }

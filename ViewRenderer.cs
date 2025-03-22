@@ -79,6 +79,67 @@ namespace DOOM
             }
         }
 
+        public readonly string skyId = "F_SKY1";
+        public readonly string skyTexName = "SKY1";
+        public WADFile.Texture skyTex;// = textures["SKY1"]; // skyTexName
+        private readonly float skyInvScale = 160 / BSP.HEIGHT;
+        private readonly float skyTexAlt = 100;
+
+        static Bitmap tmp = new(4, 4);
+        public void DrawFlat(string texId, float lightLevel, int x, int y1, int y2, float worldZ)
+        {
+            if (y1 < y2)
+            {
+                if (texId == skyId)
+                {
+                    float texColumn = 2.2f * (player.angle + SegHandler.x_to_angle[x]);
+                    DrawWallCol(skyTex.image, texColumn, x, y1, y2, skyTexAlt, skyInvScale, 255); //1.0f
+                }
+                else
+                {
+                    //using (Graphics g = Graphics.FromImage(tmp))
+                    //{
+                    //    DrawVLine(g, x, y1, y2, texId, (int)lightLevel);
+                    //}
+                    //if (!textures.ContainsKey(texId)) return;
+                    var flatTex = textures[texId];
+                    DrawFlatCol(flatTex.image, x, y1, y2, lightLevel, worldZ, player.angle, player.pos.X, player.pos.Y);
+                }
+            }
+        }
+
+        public void DrawFlatCol(Bitmap flatTex, int x, int y1, int y2, float lightLevel, float worldZ, float playerAngle, float playerX, float playerY)
+        {
+            float playerDirX = MathF.Cos((MathF.PI / 180) * playerAngle);
+            float playerDirY = MathF.Sin((MathF.PI / 180) * playerAngle);
+
+            float l = lightLevel / 255f;
+            for (int iy = y1; iy <= y2; iy++)
+            {
+                float z = BSP.H_WIDTH * worldZ / (BSP.H_HEIGHT - iy);
+
+                float px = playerDirX * z + playerX;
+                float py = playerDirY * z + playerY;
+
+                float leftX = -playerDirY * z + px;
+                float leftY = playerDirX * z + py;
+                float rightX = playerDirY * z + px;
+                float rightY = -playerDirX * z + py;
+
+                float dx = (rightX - leftX) / BSP.WIDTH;
+                float dy = (rightY - leftY) / BSP.WIDTH;
+
+                int tx = (int)(leftX + dx * x) & 63;
+                int ty = (int)(leftY + dy * x) & 63;
+
+                var tex_col = flatTex.GetPixel(tx, ty);
+                var index = (iy * (int)BSP.WIDTH + x) * 3;
+                framebuffer[index + 0] = (byte)(tex_col.R * l); // Red
+                framebuffer[index + 1] = (byte)(tex_col.G * l); // Green
+                framebuffer[index + 2] = (byte)(tex_col.B * l); // Blue
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Mod(int a, int b) => (a % b + b) % b;
 

@@ -174,6 +174,7 @@ namespace DOOM
             view_renderer.textures = texts1.Concat(textsF)
                 //.ToDictionary();
                 .GroupBy(pair => pair.Key).ToDictionary(g => g.Key, g => g.First().Value);
+            view_renderer.skyTex = view_renderer.textures[view_renderer.skyTexName];
             view_renderer.sprites = wadloader.GetSprites();
 
             bsp.root_node_id = (ushort)(map.nodes.Length - 1);

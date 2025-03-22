@@ -242,7 +242,7 @@ namespace DOOM.WAD
             public short height_ceiling;
             public helper.Sfn<helper.Sfnbyte8> tex_floor;
             public helper.Sfn<helper.Sfnbyte8> tex_ceiling;
-            public ushort light_level;
+            public ushort light_level; // div 255
             public ushort sector_type;
             public ushort tag;
         }

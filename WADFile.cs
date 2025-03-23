@@ -639,7 +639,8 @@ namespace DOOM.WAD
             public ushort width;
             public ushort height;
             public readonly Bitmap image;
-            public readonly byte[,,] image_array;
+            //public readonly byte[,,] image_array;
+            public readonly byte[] image_array;
 
             public Texture(TextureData tex_header, List<TexturePatch> tex_patches, List<WADFile.Patch> patches)
             {
@@ -684,6 +685,7 @@ namespace DOOM.WAD
                 this.image_array = ConvertTo3DArray();
             }
 
+            /*
             private readonly byte[,,] ConvertTo3DArray()
             {
                 var (w, h) = (image.Width, image.Height);
@@ -696,6 +698,24 @@ namespace DOOM.WAD
                         result[x, y, 0] = pixel.R;
                         result[x, y, 1] = pixel.G;
                         result[x, y, 2] = pixel.B;
+                    }
+                }
+                return result;
+            }
+            */
+            private readonly byte[] ConvertTo3DArray()
+            {
+                var (w, h) = (image.Width, image.Height);
+                byte[] result = new byte[w * h * 3];
+                for (int x = 0; x < w; x++)
+                {
+                    for (int y = 0; y < h*w; y+=w)
+                    {
+                        var px = (y + x) * 3;
+                        Color pixel = image.GetPixel(x, y/w);
+                        result[px + 0] = pixel.R;
+                        result[px + 1] = pixel.G;
+                        result[px + 2] = pixel.B;
                     }
                 }
                 return result;

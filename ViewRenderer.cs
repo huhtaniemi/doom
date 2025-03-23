@@ -57,20 +57,10 @@ namespace DOOM
             return colors[key];
         }
 
-        public void DrawVLine(Graphics g, int x, int y1, int y2, string tex, int light)
+        public void DrawVLine(int x, int y1, int y2, string tex, int light)
         {
             if (y1 < y2)
-            {
-                var c = GetColor(tex, light);
-                DrawColumn(x, y1, y2, c);
-                /*
-                using (var pen = new Pen(c))
-                {
-                    DrawLine(g, pen, x, y1, y2);
-                    //g.DrawLine(pen, x, y1, x, y2);
-                }
-                */
-            }
+                DrawColumn(x, y1, y2, GetColor(tex, light));
         }
 
         public void DrawColumn(int x, int y1, int y2, Color c)
@@ -109,6 +99,7 @@ namespace DOOM
                 }
                 else
                 {
+                    //DrawVLine(x, y1, y2, texId, (int)lightLevel);
                     //if (!textures.ContainsKey(texId)) return;
                     var flatTex = textures[texId];
                     DrawFlatCol(flatTex.image, x, y1, y2, lightLevel, worldZ, player.angle, player.pos.X, player.pos.Y);

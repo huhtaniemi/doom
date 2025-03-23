@@ -141,7 +141,7 @@ namespace DOOM
                 {
                     int cy1 = upper_clip[x] + 1;
                     int cy2 = (int)MathF.Min(draw_wall_y1 - 1, lower_clip[x] - 1);
-                    //renderer.DrawVLine(g, x, cy1, cy2, ceil_texture_id, light_level);
+                    //renderer.DrawVLine(x, cy1, cy2, ceil_texture_id, light_level);
                     renderer.DrawFlat(ceil_texture_id, light_level, x, cy1, cy2, world_front_z1);
                 }
 
@@ -149,7 +149,7 @@ namespace DOOM
                 {
                     int wy1 = (int)MathF.Max(draw_wall_y1, upper_clip[x] + 1);
                     int wy2 = (int)MathF.Min(draw_wall_y2, lower_clip[x] - 1);
-                    //renderer.DrawVLine(g, x, wy1, wy2, wall_texture_id, light_level);
+                    //renderer.DrawVLine(x, wy1, wy2, wall_texture_id, light_level);
                     // -------------------------------------------------------------------------
                     if (wy1 < wy2)
                     {
@@ -165,7 +165,7 @@ namespace DOOM
                 {
                     int fy1 = (int)MathF.Max(draw_wall_y2 + 1, upper_clip[x] + 1);
                     int fy2 = lower_clip[x] - 1;
-                    //renderer.DrawVLine(g, x, fy1, fy2, floor_texture_id, light_level);
+                    //renderer.DrawVLine(x, fy1, fy2, floor_texture_id, light_level);
                     renderer.DrawFlat(floor_texture_id, light_level, x, fy1, fy2, world_front_z2);
                 }
                 // -------------------------------------------------------------------------
@@ -349,14 +349,15 @@ namespace DOOM
                     {
                         int cy1 = upper_clip[x] + 1;
                         int cy2 = (int)MathF.Min(draw_wall_y1 - 1, lower_clip[x] - 1);
-                        //renderer.DrawVLine(g, x, cy1, cy2, tex_ceil_id, light_level);
+                        //renderer.DrawVLine(x, cy1, cy2, tex_ceil_id, light_level);
                         renderer.DrawFlat(tex_ceil_id, light_level, x, cy1, cy2, world_front_z1);
                     }
 
                     int wy1 = (int)MathF.Max(draw_upper_wall_y1, upper_clip[x] + 1);
                     int wy2 = (int)MathF.Min(draw_upper_wall_y2, lower_clip[x] - 1);
+
                     var upper_wall_texture = renderer.textures[upper_wall_texture_id];
-                    //renderer.DrawVLine(g, x, wy1, wy2, upper_wall_texture_id, light_level);
+                    //renderer.DrawVLine(x, wy1, wy2, upper_wall_texture_id, light_level);
                     renderer.DrawWallCol(upper_wall_texture.image, texture_column, x, wy1, wy2, upper_tex_alt, inv_scale, light_level);
 
                     if (upper_clip[x] < wy2)
@@ -369,7 +370,7 @@ namespace DOOM
                 {
                     int cy1 = upper_clip[x] + 1;
                     int cy2 = (int)MathF.Min(draw_wall_y1 - 1, lower_clip[x] - 1);
-                    //renderer.DrawVLine(g, x, cy1, cy2, tex_ceil_id, light_level);
+                    //renderer.DrawVLine(x, cy1, cy2, tex_ceil_id, light_level);
                     renderer.DrawFlat(tex_ceil_id, light_level, x, cy1, cy2, world_front_z1);
 
                     if (upper_clip[x] < cy2)
@@ -382,7 +383,7 @@ namespace DOOM
                     {
                         int fy1 = (int)MathF.Max(draw_wall_y2 + 1, upper_clip[x] + 1);
                         int fy2 = lower_clip[x] - 1;
-                        //renderer.DrawVLine(g, x, fy1, fy2, tex_floor_id, light_level);
+                        //renderer.DrawVLine(x, fy1, fy2, tex_floor_id, light_level);
                         renderer.DrawFlat(tex_floor_id, light_level, x, fy1, fy2, world_front_z2);
                     }
 
@@ -391,8 +392,9 @@ namespace DOOM
 
                     int wy1 = (int)MathF.Max(draw_lower_wall_y1, upper_clip[x] + 1);
                     int wy2 = (int)MathF.Min(draw_lower_wall_y2, lower_clip[x] - 1);
+
                     var lower_wall_texture = renderer.textures[lower_wall_texture_id];
-                    //renderer.DrawVLine(g, x, wy1, wy2, lower_wall_texture_id, light_level);
+                    //renderer.DrawVLine(wy1, wy2, lower_wall_texture_id, light_level);
                     renderer.DrawWallCol(lower_wall_texture.image, texture_column, x, wy1, wy2, lower_tex_alt, inv_scale, light_level);
 
                     if (lower_clip[x] > wy1)
@@ -405,7 +407,7 @@ namespace DOOM
                 {
                     int fy1 = (int)MathF.Max(draw_wall_y2 + 1, upper_clip[x] + 1);
                     int fy2 = lower_clip[x] - 1;
-                    //renderer.DrawVLine(g, x, fy1, fy2, tex_floor_id, light_level);
+                    //renderer.DrawVLine(x, fy1, fy2, tex_floor_id, light_level);
                     renderer.DrawFlat(tex_floor_id, light_level, x, fy1, fy2, world_front_z2);
 
                     if (lower_clip[x] > draw_wall_y2 + 1)

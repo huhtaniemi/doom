@@ -60,14 +60,6 @@ namespace DOOM
             }
         }
 
-        public void DrawSprite(Graphics g)
-        {
-            var bitmap = sprites["SHTGA0"].image;
-            int pos_x = (int)BSP.H_WIDTH - bitmap.Width / 2;
-            int pos_y = (int)BSP.HEIGHT - bitmap.Height;
-            g.DrawImage(bitmap, pos_x, pos_y);
-        }
-
         public void DrawColumn(int x, int y1, int y2, Color c)
         {
             for (int iy = y1; iy <= y2; iy++)
@@ -162,6 +154,14 @@ namespace DOOM
                     texY += invScale;
                 }
             }
+        }
+
+        public void DrawSprite(Graphics g)
+        {
+            var bitmap = sprites["SHTGA0"].image;
+            int pos_x = (int)BSP.H_WIDTH - bitmap.Width / 2;
+            int pos_y = (int)BSP.HEIGHT - bitmap.Height;
+            g.DrawImage(bitmap, pos_x, pos_y);
         }
     }
 }

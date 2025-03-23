@@ -1,27 +1,40 @@
 using System;
+using System.Drawing.Imaging;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using DOOM.WAD;
 using static DOOM.Renderer;
 using static DOOM.WAD.WADFile;
 
 namespace DOOM
 {
-    public class ViewRenderer(byte[] framebuffer, Action<Graphics, Pen, int, int, int> fn,
-        Dictionary<string, WADFile.Texture> textures, Palette palette, Player player)
+    public class ViewRenderer
     {
-        public Action<Graphics, Pen, int, int, int> DrawLine { get; } = fn;
-
-        public byte[] framebuffer = framebuffer;
+        // [B, G, R, B, G, R, B, G, R, ...]
+        public byte[] framebuffer;
+        public Bitmap framebuffer_bitmap;
+        private BitmapData framebuffer_bitmapData = new();
         private readonly Dictionary<string, Color> colors = [];
         //private readonly
-            public Dictionary<string, WADFile.Texture> textures { get; set; } = textures;
+            public Dictionary<string, WADFile.Texture> textures { get; set; }
         //private readonly
-            public Palette palette { get; set; } = palette;
+            public Palette palette { get; set; }
         //private readonly
             public Dictionary<string, WADFile.Patch> sprites { get; set; } = [];
+        private Player player;
 
-        private Player player = player;
+        public ViewRenderer(Size size,
+            Dictionary<string, WADFile.Texture> textures, Palette palette, Player player)
+        {
+            this.textures = textures;
+            this.palette = palette;
+            this.player = player;
 
+            framebuffer_bitmap = new Bitmap(size.Width, size.Height, PixelFormat.Format24bppRgb);
+            var bitsPerPixel = Bitmap.GetPixelFormatSize(framebuffer_bitmap.PixelFormat);
+            int stride = ((size.Width * bitsPerPixel + 31) / 32) * 4;
+            framebuffer = new byte[stride * size.Height];
+        }
         public Color GetColor(string tex, int lightLevel)
         {
             string key = tex + lightLevel.ToString();
@@ -71,13 +84,20 @@ namespace DOOM
             }
         }
 
+        public void UpdateBitmap()
+        {
+            framebuffer_bitmap.LockBits(new(Point.Empty, framebuffer_bitmap.Size),
+                ImageLockMode.WriteOnly, PixelFormat.Format24bppRgb, framebuffer_bitmapData);
+            Marshal.Copy(framebuffer, 0, framebuffer_bitmapData.Scan0, framebuffer.Length);
+            framebuffer_bitmap.UnlockBits(framebuffer_bitmapData);
+        }
+
         public readonly string skyId = "F_SKY1";
         public readonly string skyTexName = "SKY1";
         public WADFile.Texture skyTex;// = textures["SKY1"]; // skyTexName
         private readonly float skyInvScale = 160 / BSP.HEIGHT;
         private readonly float skyTexAlt = 100;
 
-        static Bitmap tmp = new(4, 4);
         public void DrawFlat(string texId, float lightLevel, int x, int y1, int y2, float worldZ)
         {
             if (y1 < y2)
@@ -89,10 +109,6 @@ namespace DOOM
                 }
                 else
                 {
-                    //using (Graphics g = Graphics.FromImage(tmp))
-                    //{
-                    //    DrawVLine(g, x, y1, y2, texId, (int)lightLevel);
-                    //}
                     //if (!textures.ContainsKey(texId)) return;
                     var flatTex = textures[texId];
                     DrawFlatCol(flatTex.image, x, y1, y2, lightLevel, worldZ, player.angle, player.pos.X, player.pos.Y);

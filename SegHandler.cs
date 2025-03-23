@@ -156,7 +156,7 @@ namespace DOOM
                         float angle = rw_center_angle - x_to_angle[x];
                         float texture_column = rw_distance * MathF.Tan(MathF.PI / 180 * angle) - rw_offset;
                         float inv_scale = 1.0f / rw_scale1;
-                        renderer.DrawWallCol(wall_texture.image, texture_column, x, wy1, wy2, middle_tex_alt, inv_scale, light_level);
+                        renderer.DrawWallCol(wall_texture_id, texture_column, x, wy1, wy2, middle_tex_alt, inv_scale, light_level);
                     }
                     // -------------------------------------------------------------------------
                 }
@@ -356,9 +356,8 @@ namespace DOOM
                     int wy1 = (int)MathF.Max(draw_upper_wall_y1, upper_clip[x] + 1);
                     int wy2 = (int)MathF.Min(draw_upper_wall_y2, lower_clip[x] - 1);
 
-                    var upper_wall_texture = renderer.textures[upper_wall_texture_id];
                     //renderer.DrawVLine(x, wy1, wy2, upper_wall_texture_id, light_level);
-                    renderer.DrawWallCol(upper_wall_texture.image, texture_column, x, wy1, wy2, upper_tex_alt, inv_scale, light_level);
+                    renderer.DrawWallCol(upper_wall_texture_id, texture_column, x, wy1, wy2, upper_tex_alt, inv_scale, light_level);
 
                     if (upper_clip[x] < wy2)
                         upper_clip[x] = wy2;
@@ -393,9 +392,8 @@ namespace DOOM
                     int wy1 = (int)MathF.Max(draw_lower_wall_y1, upper_clip[x] + 1);
                     int wy2 = (int)MathF.Min(draw_lower_wall_y2, lower_clip[x] - 1);
 
-                    var lower_wall_texture = renderer.textures[lower_wall_texture_id];
                     //renderer.DrawVLine(wy1, wy2, lower_wall_texture_id, light_level);
-                    renderer.DrawWallCol(lower_wall_texture.image, texture_column, x, wy1, wy2, lower_tex_alt, inv_scale, light_level);
+                    renderer.DrawWallCol(lower_wall_texture_id, texture_column, x, wy1, wy2, lower_tex_alt, inv_scale, light_level);
 
                     if (lower_clip[x] > wy1)
                         lower_clip[x] = wy1;

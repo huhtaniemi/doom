@@ -175,7 +175,7 @@ namespace DOOM
             return (MathF.Atan2(delta.Y, delta.X) * (180.0f / MathF.PI)) % 360;
         }
 
-        public void RenderBspNode(MapData map, ushort node_id)
+        public void TraverseBsp(MapData map, ushort node_id)
         {
             if (is_traverse_bsp == false)
                 return;
@@ -194,20 +194,20 @@ namespace DOOM
             var OnBackSide  = IsOnBackSide(node);
             if (OnBackSide)
             {
-                RenderBspNode(map, node.child_id_left);
+                TraverseBsp(map, node.child_id_left);
                 if (CheckBBox(node.right)) // front
                 {
                     DrawBox(node.right);
-                    RenderBspNode(map, node.child_id_right);
+                    TraverseBsp(map, node.child_id_right);
                 }
             }
             else
             {
-                RenderBspNode(map,  node.child_id_right);
+                TraverseBsp(map,  node.child_id_right);
                 if (CheckBBox(node.left)) // back
                 {
                     DrawBox(node.left);
-                    RenderBspNode(map, node.child_id_left);
+                    TraverseBsp(map, node.child_id_left);
                 }
             }
         }
@@ -240,7 +240,8 @@ namespace DOOM
             seg_handler.Reset();
             is_traverse_bsp = true;
             player.height = GetSubSectorHeight(map) + (int)Player.PLAYER_HEIGHT;
-            RenderBspNode(map, root_node_id);
+
+            TraverseBsp(map, root_node_id);
         }
     }
 

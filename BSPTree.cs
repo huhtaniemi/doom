@@ -6,8 +6,9 @@ using static DOOM.WAD.WADFileTypes;
 
 namespace DOOM
 {
-    public class BSP(SegHandler seg_handler)
+    public class BSP(Player player, SegHandler seg_handler)
     {
+        Player player = player;
         SegHandler seg_handler = seg_handler;
 
         public Action<seg, ushort> DrawSeg { get; set; } =
@@ -31,14 +32,14 @@ namespace DOOM
         public ushort root_node_id = ushort.MaxValue;
         public bool is_traverse_bsp = true;
 
-        public int GetSubSectorHeight(MapData map, Player player)
+        public int GetSubSectorHeight(MapData map)
         {
             int sub_sector_id = root_node_id;
             while (sub_sector_id < NF_SUBSECTOR)
             {
                 var node = map.nodes[sub_sector_id];
 
-                bool is_on_back = IsOnBackSide(player, node);
+                bool is_on_back = IsOnBackSide(node);
                 if (is_on_back)
                     sub_sector_id = node.child_id_left;
                 else
@@ -65,12 +66,12 @@ namespace DOOM
         public static int AngleToX(float angle)
             => (int)(SCREEN_DIST - MathF.Tan(radians(angle)) * H_WIDTH);
 
-        public bool AddSegmentToFov(Player player, vertex v1, vertex v2, out (int x1, int x2, float rwAngle1) result)
+        public bool AddSegmentToFov(vertex v1, vertex v2, out (int x1, int x2, float rwAngle1) result)
         {
             result = (0, 0, 0);
 
-            float angle1 = PointToAngle(player, new Vector2(v1.pos_x, v1.pos_y));
-            float angle2 = PointToAngle(player, new Vector2(v2.pos_x, v2.pos_y));
+            float angle1 = PointToAngle(new Vector2(v1.pos_x, v1.pos_y));
+            float angle2 = PointToAngle(new Vector2(v2.pos_x, v2.pos_y));
 
             float span = Norm(angle1 - angle2);
             // backface culling
@@ -111,7 +112,7 @@ namespace DOOM
         public static float Norm(float angle)
             => ((angle % 360f) + 360f) % 360f;
 
-        public bool CheckBBox(Player player, node.bounding_box bbox)
+        public bool CheckBBox(node.bounding_box bbox)
         {
             var a = new Vector2(bbox.left, bbox.bottom);
             var b = new Vector2(bbox.left, bbox.top);
@@ -153,8 +154,8 @@ namespace DOOM
 
             foreach (var (v1, v2) in bboxSides)
             {
-                float angle1 = PointToAngle(player, v1);
-                float angle2 = PointToAngle(player, v2);
+                float angle1 = PointToAngle(v1);
+                float angle2 = PointToAngle(v2);
 
                 float span = Norm(angle1 - angle2);
 
@@ -168,13 +169,13 @@ namespace DOOM
             return false;
         }
 
-        public float PointToAngle(Player player, Vector2 vec)
+        public float PointToAngle(Vector2 vec)
         {
             var delta = vec - player.pos;
             return (MathF.Atan2(delta.Y, delta.X) * (180.0f / MathF.PI)) % 360;
         }
 
-        public void RenderBspNode(MapData map, Player player, ushort node_id)
+        public void RenderBspNode(MapData map, ushort node_id)
         {
             if (is_traverse_bsp == false)
                 return;
@@ -184,34 +185,34 @@ namespace DOOM
             if (node_id >= NF_SUBSECTOR)
             {
                 var sub_sector_id = node_id - NF_SUBSECTOR;
-                RenderSubSector(map, (ushort)sub_sector_id, player);
+                RenderSubSector(map, (ushort)sub_sector_id);
                 return;
             }
 
             var node = map.nodes[node_id];
 
-            var OnBackSide  = IsOnBackSide(player, node);
+            var OnBackSide  = IsOnBackSide(node);
             if (OnBackSide)
             {
-                RenderBspNode(map, player, node.child_id_left);
-                if (CheckBBox(player, node.right)) // front
+                RenderBspNode(map, node.child_id_left);
+                if (CheckBBox(node.right)) // front
                 {
                     DrawBox(node.right);
-                    RenderBspNode(map, player, node.child_id_right);
+                    RenderBspNode(map, node.child_id_right);
                 }
             }
             else
             {
-                RenderBspNode(map, player, node.child_id_right);
-                if (CheckBBox(player, node.left)) // back
+                RenderBspNode(map,  node.child_id_right);
+                if (CheckBBox(node.left)) // back
                 {
                     DrawBox(node.left);
-                    RenderBspNode(map, player, node.child_id_left);
+                    RenderBspNode(map, node.child_id_left);
                 }
             }
         }
 
-        private void RenderSubSector(MapData map, ushort subSectorId, Player player)
+        private void RenderSubSector(MapData map, ushort subSectorId)
         {
             var subSector = map.subsectors[subSectorId];
 
@@ -219,15 +220,15 @@ namespace DOOM
             {
                 var seg = map.segs[subSector.seg_id_first + i];
                 (int x1, int x2, float rwAngle1) result;
-                if (AddSegmentToFov(player, map.vertexes[seg.vertex_id_start], map.vertexes[seg.vertex_id_end], out result))
+                if (AddSegmentToFov(map.vertexes[seg.vertex_id_start], map.vertexes[seg.vertex_id_end], out result))
                 {
                     DrawSeg(seg, subSectorId);
-                    seg_handler.ClassifySegment(map, seg, result.x1, result.x2, result.rwAngle1, ref is_traverse_bsp);
+                    seg_handler.ClassifySegment(map, player, seg, result.x1, result.x2, result.rwAngle1, ref is_traverse_bsp);
                 }
             }
         }
 
-        private bool IsOnBackSide(Player player, node node)
+        private bool IsOnBackSide(node node)
         {
             float dx = player.pos.X - node.partition_x;
             float dy = player.pos.Y - node.partition_y;

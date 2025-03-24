@@ -120,8 +120,8 @@ namespace DOOM
             KeyUp += (sender, e) => Player.Keyboard.KeyUp(e.KeyCode);
 
             view_renderer = new(new((int)BSP.WIDTH, (int)BSP.HEIGHT), [], new(), player);
-            seg_handler = new(view_renderer, player);
-            bsp = new(seg_handler);
+            seg_handler = new(view_renderer);
+            bsp = new(player, seg_handler);
             //bsp.DrawSeg = (seg, id) => DrawSeg(g, seg, id);
             //bsp.DrawBox = (bbox) => DrawBBox(g, bbox, Color.Aquamarine);
         }
@@ -231,14 +231,14 @@ namespace DOOM
             }
             g.DrawString($"FPS: {fps}", this.Font, Brushes.White, 10, 10);
 
-            player.height = bsp.GetSubSectorHeight(map, player) + (int)Player.PLAYER_HEIGHT;
+            player.height = bsp.GetSubSectorHeight(map) + (int)Player.PLAYER_HEIGHT;
 
             player.Control((float)renderTimer.Interval);
 
             seg_handler.Update();
 
             bsp.is_traverse_bsp = true;
-            bsp.RenderBspNode(map, player, bsp.root_node_id);
+            bsp.RenderBspNode(map, bsp.root_node_id);
 
             // draw world
             view_renderer.UpdateBitmap();

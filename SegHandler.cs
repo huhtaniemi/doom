@@ -13,7 +13,6 @@ namespace DOOM
         public const float MIN_SCALE = 0.00390625f;
 
         private ViewRenderer view_renderer;
-        private Player player;
 
         public HashSet<int> screen_range = [];
         public List<int> upper_clip = [];
@@ -23,11 +22,10 @@ namespace DOOM
             .Select(i => MathF.Atan((BSP.H_WIDTH - i) / BSP.SCREEN_DIST) * (180 / MathF.PI))
         ];
 
-        public SegHandler(ViewRenderer view_renderer, Player player)
+        public SegHandler(ViewRenderer view_renderer)
         {
             this.view_renderer = view_renderer;
             //this.wad_data = engine.wad_data;
-            this.player = player;
 
             //for (int i = 0; i <= BSP.WIDTH; i++)
             //{
@@ -43,7 +41,7 @@ namespace DOOM
         }
 
 
-        public float ScaleFromGlobalAngle(int x, float rw_normal_angle, float rw_distance)
+        public float ScaleFromGlobalAngle(Player player, int x, float rw_normal_angle, float rw_distance)
         {
             float x_angle = x_to_angle[x];
             float num = BSP.SCREEN_DIST * MathF.Cos(MathF.PI / 180f * (rw_normal_angle - x_angle - player.angle));
@@ -58,7 +56,7 @@ namespace DOOM
         public seg seg;
         public float rw_angle1;
 
-        public void DrawSolidWallRange(MapData map, int x1, int x2)
+        public void DrawSolidWallRange(MapData map, Player player, int x1, int x2)
         {
             // aliases
             var seg = this.seg;
@@ -94,7 +92,7 @@ namespace DOOM
                 new Vector2(map.seg_start_vertex(seg).pos_x, map.seg_start_vertex(seg).pos_y));
             float rw_distance = hypotenuse * MathF.Cos(MathF.PI / 180f * offset_angle);
 
-            float rw_scale1 = ScaleFromGlobalAngle(x1, rw_normal_angle, rw_distance);
+            float rw_scale1 = ScaleFromGlobalAngle(player, x1, rw_normal_angle, rw_distance);
 
             var tmp = ((offset_angle % 360f) + 360f) % 360f; // (offset_angle % 360)
             //# fix the stretched line bug?
@@ -104,11 +102,12 @@ namespace DOOM
             float rw_scale_step = 0;
             if (x1 < x2)
             {
-                float scale2 = ScaleFromGlobalAngle(x2, rw_normal_angle, rw_distance);
+                float scale2 = ScaleFromGlobalAngle(player, x2, rw_normal_angle, rw_distance);
                 rw_scale_step = (scale2 - rw_scale1) / (x2 - x1);
             }
 
             // -------------------------------------------------------------------------
+            // determine how the wall texture are vertically aligned
             var wall_texture = renderer.textures[wall_texture_id];
             float middle_tex_alt = world_front_z1;
             if ((line.flags & (ushort)linedef.FLAGS.ML_DONTPEGBOTTOM) != 0)
@@ -118,6 +117,7 @@ namespace DOOM
             }
             middle_tex_alt += side.offset_y;
 
+            // determine how the wall textures are horizontally aligned
             float rw_offset = hypotenuse * MathF.Sin(MathF.PI / 180 * offset_angle);
             rw_offset += seg.offset + side.offset_x;
 
@@ -177,7 +177,7 @@ namespace DOOM
             }
         }
 
-        public void DrawPortalWallRange(MapData map, int x1, int x2)
+        public void DrawPortalWallRange(MapData map, Player player, int x1, int x2)
         {
             // aliases
             var seg = this.seg;
@@ -235,11 +235,11 @@ namespace DOOM
                 new Vector2(map.seg_start_vertex(seg).pos_x, map.seg_start_vertex(seg).pos_y));
             float rw_distance = hypotenuse * MathF.Cos(MathF.PI / 180f * offset_angle);
 
-            float rw_scale1 = ScaleFromGlobalAngle(x1, rw_normal_angle, rw_distance);
+            float rw_scale1 = ScaleFromGlobalAngle(player, x1, rw_normal_angle, rw_distance);
             float rw_scale_step = 0;
             if (x2 > x1)
             {
-                float scale2 = ScaleFromGlobalAngle(x2, rw_normal_angle, rw_distance);
+                float scale2 = ScaleFromGlobalAngle(player, x2, rw_normal_angle, rw_distance);
                 rw_scale_step = (scale2 - rw_scale1) / (x2 - x1);
             }
 
@@ -418,7 +418,7 @@ namespace DOOM
             }
         }
 
-        public void ClipPortalWalls(MapData map, int x_start, int x_end)
+        public void ClipPortalWalls(MapData map, Player player, int x_start, int x_end)
         {
             HashSet<int> curr_wall = [.. Enumerable.Range(x_start, x_end-x_start)];
             //var curr_wall = new HashSet<int>();
@@ -434,7 +434,7 @@ namespace DOOM
             {
                 if (intersection.SetEquals(curr_wall))
                 {
-                    DrawPortalWallRange(map, x_start, x_end - 1);
+                    DrawPortalWallRange(map, player, x_start, x_end - 1);
                 }
                 else
                 {
@@ -447,16 +447,16 @@ namespace DOOM
                         int x2 = arr[i];
                         if (x2 - x1 > 1)
                         {
-                            DrawPortalWallRange(map, x, x1);
+                            DrawPortalWallRange(map, player, x, x1);
                             x = x2;
                         }
                     }
-                    DrawPortalWallRange(map, x, arr[arr.Count - 1]);
+                    DrawPortalWallRange(map, player, x, arr[arr.Count - 1]);
                 }
             }
         }
 
-        public void ClipSolidWalls(MapData map, int x_start, int x_end, ref bool bsp_is_traverse_bsp)
+        public void ClipSolidWalls(MapData map, Player player, int x_start, int x_end, ref bool bsp_is_traverse_bsp)
         {
             if (screen_range.Count > 0)
             {
@@ -474,7 +474,7 @@ namespace DOOM
                 {
                     if (intersection.SetEquals(curr_wall))
                     {
-                        DrawSolidWallRange(map, x_start, x_end - 1);
+                        DrawSolidWallRange(map, player, x_start, x_end - 1);
                     }
                     else
                     {
@@ -487,11 +487,11 @@ namespace DOOM
                             int x2 = arr[i];
                             if (x2 - x1 > 1)
                             {
-                                DrawSolidWallRange(map, x, x1);
+                                DrawSolidWallRange(map, player, x, x1);
                                 x = x2;
                             }
                         }
-                        DrawSolidWallRange(map, x, arr[arr.Count - 1]);
+                        DrawSolidWallRange(map, player, x, arr[arr.Count - 1]);
                     }
                     screen_range.ExceptWith(intersection);
                 }
@@ -502,7 +502,7 @@ namespace DOOM
             }
         }
 
-        public void ClassifySegment(MapData map, seg segment, int x1, int x2, float rw_angle1, ref bool bsp_is_traverse_bsp)
+        public void ClassifySegment(MapData map, Player player, seg segment, int x1, int x2, float rw_angle1, ref bool bsp_is_traverse_bsp)
         {
             this.seg = segment;
             this.rw_angle1 = rw_angle1;
@@ -516,7 +516,7 @@ namespace DOOM
             // handle solid walls
             if (back_sector == null)
             {
-                ClipSolidWalls(map, x1, x2, ref bsp_is_traverse_bsp);
+                ClipSolidWalls(map, player, x1, x2, ref bsp_is_traverse_bsp);
                 return;
             }
 
@@ -524,7 +524,7 @@ namespace DOOM
             if (front_sector.height_ceiling != back_sector?.height_ceiling ||
                 front_sector.height_floor != back_sector?.height_floor)
             {
-                ClipPortalWalls(map, x1, x2);
+                ClipPortalWalls(map, player, x1, x2);
                 return;
             }
 
@@ -541,7 +541,7 @@ namespace DOOM
             }
 
             // borders with different light levels and textures
-            ClipPortalWalls(map, x1, x2);
+            ClipPortalWalls(map, player, x1, x2);
         }
     }
 }

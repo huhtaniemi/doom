@@ -33,7 +33,7 @@ namespace DOOM
             //}
         }
 
-        public void Update()
+        public void Reset()
         {
             this.screen_range = [.. Enumerable.Range(0, (int)BSP.WIDTH)];
             this.upper_clip = [.. Enumerable.Repeat(-1, (int)BSP.WIDTH)];

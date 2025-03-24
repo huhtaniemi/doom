@@ -39,7 +39,7 @@ namespace DOOM
             public Vector2 pos { get; set; }
             public float angle { get; set; }
 
-            public int height = (int)PLAYER_HEIGHT;
+            public int height { get; set; } = (int)PLAYER_HEIGHT;
 
             const float PLAYER_SPEED = 0.3f;
             const float PLAYER_ROT_SPEED = 0.12f;
@@ -220,8 +220,6 @@ namespace DOOM
             base.OnPaint(e);
             var g = e.Graphics;
 
-            g.Clear(Color.Black);
-
             frameCount++;
             if (stopwatch.ElapsedMilliseconds >= 1000)
             {
@@ -229,20 +227,16 @@ namespace DOOM
                 frameCount = 0;
                 stopwatch.Restart();
             }
-            g.DrawString($"FPS: {fps}", this.Font, Brushes.White, 10, 10);
-
-            player.height = bsp.GetSubSectorHeight(map) + (int)Player.PLAYER_HEIGHT;
 
             player.Control((float)renderTimer.Interval);
 
-            seg_handler.Update();
-
-            bsp.is_traverse_bsp = true;
-            bsp.RenderBspNode(map, bsp.root_node_id);
+            // render world
+            bsp.Render(map);
 
             // draw world
             view_renderer.UpdateBitmap();
-            g.DrawImage(view_renderer.framebuffer_bitmap,Point.Empty);
+            //g.Clear(Color.Black);
+            g.DrawImage(view_renderer.framebuffer_bitmap, Point.Empty);
 
             // mini map
             DrawLinedefs(g);
@@ -251,6 +245,8 @@ namespace DOOM
 
             // hud
             view_renderer.DrawSprite(g);
+
+            g.DrawString($"FPS: {fps}", this.Font, Brushes.White, 10, 10);
         }
 
 

@@ -39,7 +39,7 @@ namespace DOOM
             {
                 var node = map.nodes[sub_sector_id];
 
-                bool is_on_back = IsOnBackSide(node);
+                bool is_on_back = IsOnBackSide(node); // player
                 if (is_on_back)
                     sub_sector_id = node.child_id_left;
                 else
@@ -233,6 +233,14 @@ namespace DOOM
             float dx = player.pos.X - node.partition_x;
             float dy = player.pos.Y - node.partition_y;
             return dx * node.partition_dy - dy * node.partition_dx <= 0.0f;
+        }
+
+        public void Render(MapData map)
+        {
+            seg_handler.Reset();
+            is_traverse_bsp = true;
+            player.height = GetSubSectorHeight(map) + (int)Player.PLAYER_HEIGHT;
+            RenderBspNode(map, root_node_id);
         }
     }
 

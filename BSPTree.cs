@@ -215,7 +215,7 @@ namespace DOOM
                 if (AddSegmentToFov(player, map.vertexes[seg.vertex_id_start], map.vertexes[seg.vertex_id_end], out result))
                 {
                     DrawSeg(seg, subSectorId);
-                    seg_handler.ClassifySegment(map, g, seg, result.x1, result.x2, result.rwAngle1, ref is_traverse_bsp);
+                    seg_handler.ClassifySegment(map, seg, result.x1, result.x2, result.rwAngle1, ref is_traverse_bsp);
                 }
             }
         }

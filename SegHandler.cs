@@ -58,7 +58,7 @@ namespace DOOM
         public seg seg;
         public float rw_angle1;
 
-        public void DrawSolidWallRange(MapData map, Graphics g, int x1, int x2)
+        public void DrawSolidWallRange(MapData map, int x1, int x2)
         {
             // aliases
             var seg = this.seg;
@@ -177,7 +177,7 @@ namespace DOOM
             }
         }
 
-        public void DrawPortalWallRange(MapData map, Graphics g, int x1, int x2)
+        public void DrawPortalWallRange(MapData map, int x1, int x2)
         {
             // aliases
             var seg = this.seg;
@@ -418,7 +418,7 @@ namespace DOOM
             }
         }
 
-        public void ClipPortalWalls(MapData map, Graphics g, int x_start, int x_end)
+        public void ClipPortalWalls(MapData map, int x_start, int x_end)
         {
             HashSet<int> curr_wall = [.. Enumerable.Range(x_start, x_end-x_start)];
             //var curr_wall = new HashSet<int>();
@@ -434,7 +434,7 @@ namespace DOOM
             {
                 if (intersection.SetEquals(curr_wall))
                 {
-                    DrawPortalWallRange(map, g, x_start, x_end - 1);
+                    DrawPortalWallRange(map, x_start, x_end - 1);
                 }
                 else
                 {
@@ -447,16 +447,16 @@ namespace DOOM
                         int x2 = arr[i];
                         if (x2 - x1 > 1)
                         {
-                            DrawPortalWallRange(map, g, x, x1);
+                            DrawPortalWallRange(map, x, x1);
                             x = x2;
                         }
                     }
-                    DrawPortalWallRange(map, g, x, arr[arr.Count - 1]);
+                    DrawPortalWallRange(map, x, arr[arr.Count - 1]);
                 }
             }
         }
 
-        public void ClipSolidWalls(MapData map, Graphics g, int x_start, int x_end, ref bool bsp_is_traverse_bsp)
+        public void ClipSolidWalls(MapData map, int x_start, int x_end, ref bool bsp_is_traverse_bsp)
         {
             if (screen_range.Count > 0)
             {
@@ -474,7 +474,7 @@ namespace DOOM
                 {
                     if (intersection.SetEquals(curr_wall))
                     {
-                        DrawSolidWallRange(map, g, x_start, x_end - 1);
+                        DrawSolidWallRange(map, x_start, x_end - 1);
                     }
                     else
                     {
@@ -487,11 +487,11 @@ namespace DOOM
                             int x2 = arr[i];
                             if (x2 - x1 > 1)
                             {
-                                DrawSolidWallRange(map, g, x, x1);
+                                DrawSolidWallRange(map, x, x1);
                                 x = x2;
                             }
                         }
-                        DrawSolidWallRange(map, g, x, arr[arr.Count - 1]);
+                        DrawSolidWallRange(map, x, arr[arr.Count - 1]);
                     }
                     screen_range.ExceptWith(intersection);
                 }
@@ -502,7 +502,7 @@ namespace DOOM
             }
         }
 
-        public void ClassifySegment(MapData map, Graphics g, seg segment, int x1, int x2, float rw_angle1, ref bool bsp_is_traverse_bsp)
+        public void ClassifySegment(MapData map, seg segment, int x1, int x2, float rw_angle1, ref bool bsp_is_traverse_bsp)
         {
             this.seg = segment;
             this.rw_angle1 = rw_angle1;
@@ -516,7 +516,7 @@ namespace DOOM
             // handle solid walls
             if (back_sector == null)
             {
-                ClipSolidWalls(map, g, x1, x2, ref bsp_is_traverse_bsp);
+                ClipSolidWalls(map, x1, x2, ref bsp_is_traverse_bsp);
                 return;
             }
 
@@ -524,7 +524,7 @@ namespace DOOM
             if (front_sector.height_ceiling != back_sector?.height_ceiling ||
                 front_sector.height_floor != back_sector?.height_floor)
             {
-                ClipPortalWalls(map, g, x1, x2);
+                ClipPortalWalls(map, x1, x2);
                 return;
             }
 
@@ -541,7 +541,7 @@ namespace DOOM
             }
 
             // borders with different light levels and textures
-            ClipPortalWalls(map, g, x1, x2);
+            ClipPortalWalls(map, x1, x2);
         }
     }
 }

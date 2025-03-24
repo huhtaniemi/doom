@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using DOOM.WAD;
 using static DOOM.Renderer;
 using static DOOM.WAD.WADFile;
+using static DOOM.WAD.WADFileTypes;
 
 namespace DOOM
 {
@@ -18,13 +19,13 @@ namespace DOOM
         //private readonly
             public Dictionary<string, WADFile.Texture> textures { get; set; }
         //private readonly
-            public Palette palette { get; set; }
+            public WADFile.Palette palette { get; set; }
         //private readonly
             public Dictionary<string, WADFile.Patch> sprites { get; set; } = [];
         private Player player;
 
         public ViewRenderer(Size size,
-            Dictionary<string, WADFile.Texture> textures, Palette palette, Player player)
+            Dictionary<string, WADFile.Texture> textures, WADFile.Palette palette, Player player)
         {
             this.textures = textures;
             this.palette = palette;
@@ -190,6 +191,43 @@ namespace DOOM
             int pos_x = (int)BSP.H_WIDTH - bitmap.Width / 2;
             int pos_y = (int)BSP.HEIGHT - bitmap.Height;
             g.DrawImage(bitmap, pos_x, pos_y);
+        }
+
+        public void DrawSeg(seg seg, int id)
+        {
+            return;
+            /*
+            var v1 = VERTEXES[seg.vertex_id_start];
+            var v2 = VERTEXES[seg.vertex_id_end];
+            g.DrawLine(Pens.Green, RemapX(v1.X), RemapY(v1.Y), RemapX(v2.X), RemapY(v2.Y));
+            //*/
+        }
+
+        public void DrawBBox(node.bounding_box bbox, Color color)
+        {
+            return;
+            /*
+            float x = RemapX(bbox.left);
+            float y = RemapY(bbox.top);
+            float w = RemapX(bbox.right) - x;
+            float h = RemapY(bbox.bottom) - y;
+            g.DrawRectangle(new Pen(color, 0.5f), x, y, w, h);
+            //*/
+        }
+
+        public void DrawNode(Graphics g, int nodeId)
+        {
+            /*
+            var node = NODES[nodeId];
+            var bboxFront = node.right; //front;
+            var bboxBack = node.left; //back;
+            DrawBBox(g, bboxFront, Color.Green);
+            DrawBBox(g, bboxBack, Color.Red);
+            var (x1, y1) = (RemapX(node.partition_x), RemapY(node.partition_y));
+            float x2 = RemapX(node.partition_x + node.partition_dx);
+            float y2 = RemapY(node.partition_y + node.partition_dy);
+            g.DrawLine(new Pen(Color.Blue, 4), x1, y1, x2, y2);
+            //*/
         }
     }
 }

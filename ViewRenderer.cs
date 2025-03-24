@@ -131,11 +131,20 @@ namespace DOOM
                 int tx = (int)(leftX + dx * x) & 63;
                 int ty = (int)(leftY + dy * x) & 63;
 
+                /*
                 var tex_col = flatTex.image.GetPixel(tx, ty);
                 var index = (iy * (int)BSP.WIDTH + x) * 3;
                 framebuffer[index + 0] = (byte)(tex_col.R * l); // Red
                 framebuffer[index + 1] = (byte)(tex_col.G * l); // Green
                 framebuffer[index + 2] = (byte)(tex_col.B * l); // Blue
+                //*/
+
+                var tex_col = flatTex.image_array.AsSpan(ty*flatTex.width*3 + tx * 3, 3);
+                var frame = framebuffer.AsSpan((iy * (int)BSP.WIDTH + x) * 3, 3);
+                frame[0] = (byte)(tex_col[0] * l); // Red
+                frame[1] = (byte)(tex_col[1] * l); // Green
+                frame[2] = (byte)(tex_col[2] * l); // Blue
+                //tex_col.CopyTo(frame);
             }
         }
 
@@ -154,11 +163,22 @@ namespace DOOM
                 float l = lightLevel / 255f;
                 for (int iy = y1; iy <= y2; iy++)
                 {
+                    /*
                     var tex_col = tex.image.GetPixel(texColInt, Mod((int)texY, texH));
                     var index = (iy * (int)BSP.WIDTH + x) * 3;
                     framebuffer[index + 0] = (byte)(tex_col.R * l); // Red
                     framebuffer[index + 1] = (byte)(tex_col.G * l); // Green
                     framebuffer[index + 2] = (byte)(tex_col.B * l); // Blue
+                    //*/
+
+                    var tx = texColInt; var ty = Mod((int)texY, texH);
+                    var tex_col = tex.image_array.AsSpan(ty * tex.width * 3 + tx * 3, 3);
+                    var frame = framebuffer.AsSpan((iy * (int)BSP.WIDTH + x) * 3, 3);
+                    frame[0] = (byte)(tex_col[0] * l); // Red
+                    frame[1] = (byte)(tex_col[1] * l); // Green
+                    frame[2] = (byte)(tex_col[2] * l); // Blue
+                    //tex_col.CopyTo(frame);
+
                     texY += invScale;
                 }
             }

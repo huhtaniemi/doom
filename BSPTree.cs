@@ -10,6 +10,14 @@ namespace DOOM
     {
         SegHandler seg_handler = seg_handler;
 
+        public Action<seg, ushort> DrawSeg { get; set; } =
+            //seg_handler.view_renderer.DrawSeg(seg, id);
+            (seg, id) => { };
+
+        public Action<node.bounding_box> DrawBox { get; set; } =
+            //seg_handler.view_renderer.DrawBox(box);
+            (box) => { };
+
         private const ushort NF_SUBSECTOR = WADFileTypes.NF_SUBSECTOR;
         public const float FOV = 90;
         public const float H_FOV = FOV / 2;
@@ -166,8 +174,7 @@ namespace DOOM
             return (MathF.Atan2(delta.Y, delta.X) * (180.0f / MathF.PI)) % 360;
         }
 
-        public void RenderBspNode(MapData map, Player player, Graphics g, ushort node_id,
-            Action<seg, ushort> DrawSeg, Action<node.bounding_box> DrawBox)
+        public void RenderBspNode(MapData map, Player player, ushort node_id)
         {
             if (is_traverse_bsp == false)
                 return;
@@ -177,7 +184,7 @@ namespace DOOM
             if (node_id >= NF_SUBSECTOR)
             {
                 var sub_sector_id = node_id - NF_SUBSECTOR;
-                RenderSubSector(map, g, (ushort)sub_sector_id, player, DrawSeg);
+                RenderSubSector(map, (ushort)sub_sector_id, player);
                 return;
             }
 
@@ -186,25 +193,25 @@ namespace DOOM
             var OnBackSide  = IsOnBackSide(player, node);
             if (OnBackSide)
             {
-                RenderBspNode(map, player, g, node.child_id_left, DrawSeg, DrawBox);
+                RenderBspNode(map, player, node.child_id_left);
                 if (CheckBBox(player, node.right)) // front
                 {
                     DrawBox(node.right);
-                    RenderBspNode(map, player, g, node.child_id_right, DrawSeg, DrawBox);
+                    RenderBspNode(map, player, node.child_id_right);
                 }
             }
             else
             {
-                RenderBspNode(map, player, g, node.child_id_right, DrawSeg, DrawBox);
+                RenderBspNode(map, player, node.child_id_right);
                 if (CheckBBox(player, node.left)) // back
                 {
                     DrawBox(node.left);
-                    RenderBspNode(map, player, g, node.child_id_left, DrawSeg, DrawBox);
+                    RenderBspNode(map, player, node.child_id_left);
                 }
             }
         }
 
-        private void RenderSubSector(MapData map, Graphics g, ushort subSectorId, Player player, Action<seg, ushort> DrawSeg)
+        private void RenderSubSector(MapData map, ushort subSectorId, Player player)
         {
             var subSector = map.subsectors[subSectorId];
 

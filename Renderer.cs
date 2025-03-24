@@ -122,6 +122,8 @@ namespace DOOM
             view_renderer = new(new((int)BSP.WIDTH, (int)BSP.HEIGHT), [], new(), player);
             seg_handler = new(view_renderer, player);
             bsp = new(seg_handler);
+            //bsp.DrawSeg = (seg, id) => DrawSeg(g, seg, id);
+            //bsp.DrawBox = (bbox) => DrawBBox(g, bbox, Color.Aquamarine);
         }
 
         List<thing> THINGS = [];
@@ -236,7 +238,7 @@ namespace DOOM
             seg_handler.Update();
 
             bsp.is_traverse_bsp = true;
-            bsp.RenderBspNode(map, player, g, bsp.root_node_id, (seg, id) => DrawSeg(g, seg, id), (bbox) => DrawBBox(g, bbox, Color.Aquamarine));
+            bsp.RenderBspNode(map, player, bsp.root_node_id);
 
             // draw world
             view_renderer.UpdateBitmap();

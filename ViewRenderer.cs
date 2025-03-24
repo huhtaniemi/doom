@@ -36,6 +36,7 @@ namespace DOOM
             int stride = ((size.Width * bitsPerPixel + 31) / 32) * 4;
             framebuffer = new byte[stride * size.Height];
         }
+        Random random = new(123456);
         public Color GetColor(string tex, int lightLevel)
         {
             string key = tex + lightLevel.ToString();
@@ -43,7 +44,7 @@ namespace DOOM
             {
                 int texId = tex.GetHashCode();
                 float l = lightLevel / 255f;
-                Random random = new(texId);
+                //Random random = new(texId);
                 /*
                 int rngMin = 50;
                 int rngMax = 256;
